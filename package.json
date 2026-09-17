@@ -1,0 +1,9 @@
+{
+  "name": "orbie",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Orbie — a companion pet whose mood matches your glucose trend, backed by Nightscout or LibreLinkUp.",
+  "engines": {
+    "node": ">=18"
+  }
+}
