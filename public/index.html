@@ -167,15 +167,51 @@
     z-index: 3;
   }
   .play-btn:active { transform: scale(0.92); }
+  .hop-icon { left: 10px; right: auto; }
+
+  .hop-controls {
+    position: absolute;
+    bottom: 56px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    z-index: 1001;
+  }
+  .hop-controls-row { display: flex; gap: 40px; }
+  .dpad-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .dpad-btn:active { background: rgba(255,255,255,0.18); }
 
   .game-overlay {
     position: fixed;
     inset: 0;
     background: #05070a;
     z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   .game-overlay.hidden { display: none; }
-  #game-canvas {
+  .game-frame {
+    position: relative;
+    width: min(94vw, 480px, calc(92vh * 3 / 4));
+    aspect-ratio: 3 / 4;
+    background: #05070a;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  #game-canvas, #hop-canvas {
     width: 100%;
     height: 100%;
     display: block;
@@ -216,6 +252,68 @@
     font-size: 15px;
     cursor: pointer;
     z-index: 1002;
+  }
+
+  .recap-link {
+    text-align: center;
+    margin-top: 14px;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .recap-link:active { opacity: 0.6; }
+
+  .recap-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 7, 10, 0.88);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .recap-overlay.hidden { display: none; }
+  .recap-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px 22px 22px;
+    max-width: 360px;
+    width: 100%;
+    position: relative;
+  }
+  .recap-title {
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+  }
+  .recap-body {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--text);
+  }
+  .recap-bar {
+    display: flex;
+    height: 10px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--bg);
+    margin-bottom: 16px;
+  }
+  .recap-stat {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .recap-note {
+    margin-top: 16px;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    line-height: 1.5;
   }
 
   .blob { transition: fill 0.6s ease; }
@@ -511,13 +609,33 @@
     </div>
     <div class="poke-hint">tap for the last 4 hours · drag to pet</div>
     <button class="play-btn" id="play-game-btn" aria-label="Play Orbie Flap">🎮</button>
+    <button class="play-btn hop-icon" id="hop-game-btn" aria-label="Play Orbie Hop">🛸</button>
   </div>
 
   <div class="game-overlay hidden" id="game-overlay">
-    <canvas id="game-canvas"></canvas>
-    <div class="game-score" id="game-score">⭐ 0   best 0</div>
-    <div class="game-status-pill" id="game-status-pill">tap or press space to launch</div>
-    <button class="game-close" id="game-close-btn" aria-label="Close game">✕</button>
+    <div class="game-frame">
+      <canvas id="game-canvas"></canvas>
+      <div class="game-score" id="game-score">⭐ 0   best 0</div>
+      <div class="game-status-pill" id="game-status-pill">tap or press space to launch</div>
+      <button class="game-close" id="game-close-btn" aria-label="Close game">✕</button>
+    </div>
+  </div>
+
+  <div class="game-overlay hidden" id="hop-overlay">
+    <div class="game-frame">
+      <canvas id="hop-canvas"></canvas>
+      <div class="game-score" id="hop-score">⭐ 0   best 0   ❤️ 3</div>
+      <div class="game-status-pill" id="hop-status-pill">swipe or use arrows to cross</div>
+      <button class="game-close" id="hop-close-btn" aria-label="Close game">✕</button>
+      <div class="hop-controls">
+        <button class="dpad-btn" id="hop-up">▲</button>
+        <div class="hop-controls-row">
+          <button class="dpad-btn" id="hop-left">◀</button>
+          <button class="dpad-btn" id="hop-down">▼</button>
+          <button class="dpad-btn" id="hop-right">▶</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="readout">
@@ -541,6 +659,16 @@
     <div class="sim-range">
       <label>Simulated reading: <span id="sim-value-label">142</span> mg/dL</label>
       <input type="range" id="sim-value" min="40" max="300" value="142">
+    </div>
+  </div>
+
+  <div class="recap-link" id="recap-btn">📅 see Orbie's week</div>
+
+  <div class="recap-overlay hidden" id="recap-overlay">
+    <div class="recap-card">
+      <button class="game-close" id="recap-close-btn" aria-label="Close recap">✕</button>
+      <div class="recap-title">Orbie's week</div>
+      <div class="recap-body" id="recap-body">Loading…</div>
     </div>
   </div>
 
@@ -1308,29 +1436,35 @@ function drawObstaclePiece(type, x, y, w, h) {
   else drawSatellite(x, y, w, h);
 }
 
-function drawBird() {
-  gctx.save();
-  gctx.translate(bird.x, bird.y);
-  gctx.rotate(Math.max(-0.5, Math.min(0.9, bird.vy / 700)));
-  gctx.fillStyle = orbieColor;
-  gctx.beginPath();
-  gctx.ellipse(0, 0, bird.r, bird.r * 0.9, 0, 0, Math.PI * 2);
-  gctx.fill();
+// Shared across both minigames so Orbie looks identical in either one.
+function drawOrbieSprite(ctx, cx, cy, r, color, rotation) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rotation || 0);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, r, r * 0.9, 0, 0, Math.PI * 2);
+  ctx.fill();
   // ear bumps, echoing the main pet's silhouette
-  gctx.beginPath();
-  gctx.ellipse(-bird.r * 0.5, -bird.r * 0.75, bird.r * 0.22, bird.r * 0.3, -0.4, 0, Math.PI * 2);
-  gctx.fill();
-  gctx.beginPath();
-  gctx.ellipse(bird.r * 0.5, -bird.r * 0.75, bird.r * 0.22, bird.r * 0.3, 0.4, 0, Math.PI * 2);
-  gctx.fill();
-  gctx.fillStyle = '#1B2228';
-  gctx.beginPath();
-  gctx.ellipse(-bird.r * 0.32, -bird.r * 0.1, bird.r * 0.16, bird.r * 0.2, 0, 0, Math.PI * 2);
-  gctx.fill();
-  gctx.beginPath();
-  gctx.ellipse(bird.r * 0.32, -bird.r * 0.1, bird.r * 0.16, bird.r * 0.2, 0, 0, Math.PI * 2);
-  gctx.fill();
-  gctx.restore();
+  ctx.beginPath();
+  ctx.ellipse(-r * 0.5, -r * 0.75, r * 0.22, r * 0.3, -0.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(r * 0.5, -r * 0.75, r * 0.22, r * 0.3, 0.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#1B2228';
+  ctx.beginPath();
+  ctx.ellipse(-r * 0.32, -r * 0.1, r * 0.16, r * 0.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(r * 0.32, -r * 0.1, r * 0.16, r * 0.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawBird() {
+  const angle = Math.max(-0.5, Math.min(0.9, bird.vy / 700));
+  drawOrbieSprite(gctx, bird.x, bird.y, bird.r, orbieColor, angle);
 }
 
 function gameStep(ts) {
@@ -1407,6 +1541,278 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'Space') { e.preventDefault(); flap(); }
 });
 window.addEventListener('resize', () => { if (gameRunning) resizeGameCanvas(); });
+
+/* ============================================================
+   WEEKLY RECAP — a gentle 7-day summary, framed as "how Orbie's
+   week went" rather than a grade. No shaming language for lows
+   or highs; just plain numbers and a soft note.
+   ============================================================ */
+
+const recapBtn = document.getElementById('recap-btn');
+const recapOverlay = document.getElementById('recap-overlay');
+const recapBody = document.getElementById('recap-body');
+
+async function fetchWeeklyRecap() {
+  const res = await fetch('/api/weekly');
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Backend returned ${res.status}`);
+  }
+  return res.json();
+}
+
+function demoWeeklySummary() {
+  return { percentLow: 8, percentInRange: 72, percentHigh: 20, average: 142, lowCount: 9, highCount: 14, totalReadings: 2016, days: 7, demo: true };
+}
+
+function recapNote(s) {
+  if (s.percentInRange >= 70) return "Orbie had a really steady week! 🌟";
+  if (s.lowCount > s.highCount) return "A few low dips this week — Orbie got sleepy a handful of times.";
+  if (s.highCount > 0) return "A few warm stretches this week — nothing to stress about, just noting it.";
+  return "A pretty typical week for Orbie.";
+}
+
+function renderRecap(s) {
+  recapBody.innerHTML = `
+    <div class="recap-bar">
+      <div style="width:${s.percentLow}%; background:var(--low)"></div>
+      <div style="width:${s.percentInRange}%; background:var(--inrange)"></div>
+      <div style="width:${s.percentHigh}%; background:var(--high)"></div>
+    </div>
+    <div class="recap-stat"><span>In a good range</span><span>${s.percentInRange}%</span></div>
+    <div class="recap-stat"><span>Ran low</span><span>${s.percentLow}%</span></div>
+    <div class="recap-stat"><span>Ran high</span><span>${s.percentHigh}%</span></div>
+    <div class="recap-stat"><span>Average</span><span>${Math.round(s.average)} mg/dL</span></div>
+    <div class="recap-note">${recapNote(s)}${s.demo ? ' <em>(sample data — connect a backend for Orbie\'s real week)</em>' : ''}</div>
+  `;
+}
+
+async function openRecap() {
+  recapOverlay.classList.remove('hidden');
+  recapBody.textContent = 'Loading…';
+  try {
+    const summary = isLive ? await fetchWeeklyRecap() : demoWeeklySummary();
+    renderRecap(summary);
+  } catch (err) {
+    renderRecap(demoWeeklySummary());
+  }
+}
+function closeRecap() {
+  recapOverlay.classList.add('hidden');
+}
+
+recapBtn.addEventListener('click', openRecap);
+document.getElementById('recap-close-btn').addEventListener('click', closeRecap);
+
+/* ============================================================
+   MINIGAME 2 — "Orbie Hop": a Frogger-style crossing. Move up
+   through lanes of drifting meteors and satellites to reach the
+   mothership at the top. Reuses the same meteor/satellite/sprite
+   drawing as Orbie Flap for visual consistency.
+   ============================================================ */
+
+const hopBtn = document.getElementById('hop-game-btn');
+const hopOverlay = document.getElementById('hop-overlay');
+const hopCanvas = document.getElementById('hop-canvas');
+const hctx = hopCanvas.getContext('2d');
+const hopScoreEl = document.getElementById('hop-score');
+const hopStatusEl = document.getElementById('hop-status-pill');
+
+['pointerdown', 'pointerup', 'pointermove'].forEach(evt =>
+  hopBtn.addEventListener(evt, (e) => e.stopPropagation())
+);
+
+let hopRunning = false;
+let hopLoopId = null;
+let hopLastTs = 0;
+let hW = 0, hH = 0;
+const HOP_ROWS = 7; // row 0 = goal, row 6 = start
+const HOP_COLS = 7;
+let hopCol, hopRow, hopFromRow, hopFromCol, hopAnimT;
+let hopLives, hopScore, hopBest, hopGameOver, hopOrbieColor, hopLanes;
+
+function resizeHopCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  hW = hopCanvas.clientWidth;
+  hH = hopCanvas.clientHeight;
+  hopCanvas.width = hW * dpr;
+  hopCanvas.height = hH * dpr;
+  hctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function loadHopBest() { try { return Number(localStorage.getItem('orbie_hop_best') || 0); } catch (e) { return 0; } }
+function saveHopBest(v) { try { localStorage.setItem('orbie_hop_best', String(v)); } catch (e) { /* storage unavailable */ } }
+
+function cellSize() { return { cw: hW / HOP_COLS, rh: hH / HOP_ROWS }; }
+
+function initHop() {
+  resizeHopCanvas();
+  hopOrbieColor = rangeColor(currentValue); // same snapshot approach as Orbie Flap
+  hopCol = Math.floor(HOP_COLS / 2);
+  hopRow = HOP_ROWS - 1;
+  hopFromRow = hopRow; hopFromCol = hopCol; hopAnimT = 1;
+  hopLives = 3;
+  hopScore = 0;
+  hopBest = loadHopBest();
+  hopGameOver = false;
+  hopLanes = [];
+  for (let r = 1; r < HOP_ROWS - 1; r++) {
+    const dir = r % 2 === 0 ? 1 : -1;
+    const speed = (40 + r * 12) * dir;
+    const kind = r % 2 === 0 ? 'satellite' : 'meteor';
+    const gap = 190;
+    const count = Math.ceil(hW / gap) + 2;
+    const obstacles = [];
+    for (let i = 0; i < count; i++) {
+      obstacles.push({ x: i * gap + (dir > 0 ? -gap : 0), w: 50, h: 30 });
+    }
+    hopLanes.push({ row: r, dir, speed, kind, obstacles, gap, count });
+  }
+  updateHopHud();
+  hopStatusEl.textContent = 'swipe or use arrows to cross';
+}
+
+function updateHopHud() {
+  hopScoreEl.textContent = `⭐ ${hopScore}   best ${hopBest}   ❤️ ${hopLives}`;
+}
+
+function tryMove(dr, dc) {
+  if (hopGameOver) { initHop(); return; }
+  const nr = hopRow + dr, nc = hopCol + dc;
+  if (nr < 0 || nr > HOP_ROWS - 1 || nc < 0 || nc > HOP_COLS - 1) return;
+  hopFromRow = hopRow; hopFromCol = hopCol;
+  hopRow = nr; hopCol = nc;
+  hopAnimT = 0;
+  hopStatusEl.textContent = '';
+  if (hopRow === 0) {
+    hopScore++;
+    if (hopScore > hopBest) { hopBest = hopScore; saveHopBest(hopBest); }
+    updateHopHud();
+    hopLanes.forEach(l => { l.speed *= 1.06; }); // a little faster each successful crossing
+    hopRow = HOP_ROWS - 1;
+    hopCol = Math.floor(HOP_COLS / 2);
+    hopFromRow = hopRow; hopFromCol = hopCol; hopAnimT = 1;
+  }
+}
+
+function hopLoseLife() {
+  hopLives--;
+  updateHopHud();
+  if (hopLives <= 0) {
+    hopGameOver = true;
+    hopStatusEl.textContent = 'tap to try again';
+  } else {
+    hopRow = HOP_ROWS - 1;
+    hopCol = Math.floor(HOP_COLS / 2);
+    hopFromRow = hopRow; hopFromCol = hopCol; hopAnimT = 1;
+  }
+}
+
+function drawHopBackground() {
+  hctx.fillStyle = '#05070a';
+  hctx.fillRect(0, 0, hW, hH);
+  const { rh } = cellSize();
+  for (let r = 0; r < HOP_ROWS; r++) {
+    hctx.fillStyle = (r === 0 || r === HOP_ROWS - 1) ? 'rgba(143,191,127,0.08)' : 'transparent';
+    hctx.fillRect(0, r * rh, hW, rh);
+  }
+}
+
+function hopStep(ts) {
+  if (!hopRunning) return;
+  if (!hopLastTs) hopLastTs = ts;
+  const dt = Math.min(0.033, (ts - hopLastTs) / 1000);
+  hopLastTs = ts;
+
+  drawHopBackground();
+  const { cw, rh } = cellSize();
+
+  if (!hopGameOver) {
+    hopLanes.forEach(lane => {
+      lane.obstacles.forEach(o => {
+        o.x += lane.speed * dt;
+        const loopWidth = lane.gap * lane.count;
+        if (lane.dir > 0 && o.x > hW) o.x -= loopWidth;
+        if (lane.dir < 0 && o.x + o.w < 0) o.x += loopWidth;
+      });
+    });
+    hopAnimT = Math.min(1, hopAnimT + dt * 6);
+  }
+
+  hopLanes.forEach(lane => {
+    const y = lane.row * rh + rh * 0.12;
+    const h = rh * 0.76;
+    lane.obstacles.forEach(o => {
+      if (lane.kind === 'meteor') drawMeteor(o.x, y, o.w, h);
+      else drawSatellite(o.x, y, o.w, h);
+    });
+  });
+
+  const px = (hopFromCol + (hopCol - hopFromCol) * hopAnimT + 0.5) * cw;
+  const py = (hopFromRow + (hopRow - hopFromRow) * hopAnimT + 0.5) * rh;
+  drawOrbieSprite(hctx, px, py, Math.min(cw, rh) * 0.32, hopOrbieColor, 0);
+
+  if (!hopGameOver && hopAnimT >= 1 && hopRow > 0 && hopRow < HOP_ROWS - 1) {
+    const lane = hopLanes.find(l => l.row === hopRow);
+    const orbieX = (hopCol + 0.5) * cw;
+    const orbieY = (hopRow + 0.5) * rh;
+    const hit = lane.obstacles.some(o =>
+      circleRectCollide(orbieX, orbieY, Math.min(cw, rh) * 0.28, o.x, lane.row * rh + rh * 0.12, o.w, rh * 0.76)
+    );
+    if (hit) hopLoseLife();
+  }
+
+  hopLoopId = requestAnimationFrame(hopStep);
+}
+
+function openHop() {
+  hopOverlay.classList.remove('hidden');
+  stopPolling();
+  initHop();
+  hopRunning = true;
+  hopLastTs = 0;
+  hopLoopId = requestAnimationFrame(hopStep);
+}
+function closeHop() {
+  hopRunning = false;
+  if (hopLoopId) cancelAnimationFrame(hopLoopId);
+  hopOverlay.classList.add('hidden');
+  if (!demoForced) startPolling();
+}
+
+hopBtn.addEventListener('click', openHop);
+document.getElementById('hop-close-btn').addEventListener('click', closeHop);
+document.getElementById('hop-up').addEventListener('click', () => tryMove(-1, 0));
+document.getElementById('hop-down').addEventListener('click', () => tryMove(1, 0));
+document.getElementById('hop-left').addEventListener('click', () => tryMove(0, -1));
+document.getElementById('hop-right').addEventListener('click', () => tryMove(0, 1));
+
+let hopSwipeStartX = 0, hopSwipeStartY = 0, hopSwipeId = null, hopWasOverAtDown = false;
+hopCanvas.addEventListener('pointerdown', (e) => {
+  hopSwipeId = e.pointerId;
+  hopSwipeStartX = e.clientX; hopSwipeStartY = e.clientY;
+  hopWasOverAtDown = hopGameOver;
+});
+hopCanvas.addEventListener('pointerup', (e) => {
+  if (e.pointerId !== hopSwipeId) return;
+  const dx = e.clientX - hopSwipeStartX, dy = e.clientY - hopSwipeStartY;
+  const SWIPE_MIN = 24;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_MIN) {
+    if (hopWasOverAtDown) initHop();
+    return;
+  }
+  if (Math.abs(dx) > Math.abs(dy)) tryMove(0, dx > 0 ? 1 : -1);
+  else tryMove(dy > 0 ? 1 : -1, 0);
+});
+
+window.addEventListener('keydown', (e) => {
+  if (hopOverlay.classList.contains('hidden')) return;
+  if (e.key === 'ArrowUp') { e.preventDefault(); tryMove(-1, 0); }
+  else if (e.key === 'ArrowDown') { e.preventDefault(); tryMove(1, 0); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); tryMove(0, -1); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); tryMove(0, 1); }
+});
+window.addEventListener('resize', () => { if (hopRunning) resizeHopCanvas(); });
 
 // initial paint
 applyState(currentTrend, currentValue);
