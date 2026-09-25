@@ -205,11 +205,18 @@
   .game-overlay.hidden { display: none; }
   .game-frame {
     position: relative;
-    width: min(94vw, 480px, calc(92vh * 3 / 4));
-    aspect-ratio: 3 / 4;
+    width: 100%;
+    height: 100%;
     background: #05070a;
-    border-radius: 12px;
-    overflow: hidden;
+  }
+  @media (min-width: 640px) {
+    .game-frame {
+      width: min(94vw, 480px, calc(92vh * 3 / 4));
+      height: auto;
+      aspect-ratio: 3 / 4;
+      border-radius: 12px;
+      overflow: hidden;
+    }
   }
   #game-canvas, #hop-canvas {
     width: 100%;
@@ -701,6 +708,7 @@
 
 let isLive = false;
 let demoForced = false;
+let hasResolvedFirstPoll = false;
 let pollTimer = null;
 const POLL_INTERVAL_MS = 30 * 1000; // more frequent than before — CGMs update every 1-5 min anyway, so this just closes the gap faster
 
@@ -761,6 +769,7 @@ async function pollOnce() {
   try {
     const reading = await fetchReading();
     isLive = true;
+    hasResolvedFirstPoll = true;
     currentTrend = reading.trend;
     currentValue = reading.value;
     pushToBuffer(reading.value, reading.timestamp || Date.now());
@@ -770,6 +779,13 @@ async function pollOnce() {
     updateSimPanelVisibility();
   } catch (err) {
     isLive = false;
+    if (!hasResolvedFirstPoll) {
+      // We've now actually confirmed there's no backend — safe to show the
+      // demo view, clearly labeled, instead of leaving the neutral loading
+      // placeholder up forever.
+      hasResolvedFirstPoll = true;
+      applyState(currentTrend, currentValue);
+    }
     setBackendStatus('Demo data — no backend found at /api/reading yet.', false);
     updateSimPanelVisibility();
     readingBuffer = [];
@@ -1009,15 +1025,20 @@ function applyState(trend, value, opts = {}) {
   document.querySelectorAll('.cheek').forEach(el => el.setAttribute('fill', cheekColorFor(band)));
 
   // text
-  document.getElementById('glucose-value').textContent = trend === 'Stale' ? '—' : value;
-  document.getElementById('trend-word').innerHTML =
-    `<span class="trend-arrow">${meta.arrow}</span> ${trend === 'Stale' ? meta.speedWord : `${meta.speedWord} · ${rangeWord(value)}`}`;
-  document.getElementById('status-word').textContent = severeRate
-    ? (opts.rateInfo.direction === 'falling' ? 'falling fast — heads up' : 'rising fast — heads up')
-    : (trend === 'Stale' ? 'hasn\'t heard from you in a while' : meta.word);
-  document.getElementById('updated-word').textContent = opts.live
-    ? `updated ${new Date(opts.timestamp || Date.now()).toLocaleTimeString()}`
-    : (demoForced ? 'demo mode' : 'demo data — not a real reading');
+  document.getElementById('glucose-value').textContent = (trend === 'Stale' || opts.loading) ? '—' : value;
+  document.getElementById('trend-word').innerHTML = opts.loading
+    ? `<span class="trend-arrow">…</span> checking for a live reading`
+    : `<span class="trend-arrow">${meta.arrow}</span> ${trend === 'Stale' ? meta.speedWord : `${meta.speedWord} · ${rangeWord(value)}`}`;
+  document.getElementById('status-word').textContent = opts.loading
+    ? 'waking up'
+    : severeRate
+      ? (opts.rateInfo.direction === 'falling' ? 'falling fast — heads up' : 'rising fast — heads up')
+      : (trend === 'Stale' ? 'hasn\'t heard from you in a while' : meta.word);
+  document.getElementById('updated-word').textContent = opts.loading
+    ? 'loading…'
+    : opts.live
+      ? `updated ${new Date(opts.timestamp || Date.now()).toLocaleTimeString()}`
+      : (demoForced ? 'demo mode' : 'demo data — not a real reading');
 }
 
 // wire up demo buttons — using them switches Orbie into demo mode so
@@ -1066,6 +1087,11 @@ document.getElementById('force-live').addEventListener('click', () => {
 document.getElementById('refresh-now').addEventListener('click', () => {
   if (!demoForced) pollOnce();
 });
+
+// Show a neutral loading look until the very first poll attempt resolves
+// (success or failure) — avoids ever flashing a confident-looking demo
+// reading before we've actually checked whether a live backend exists.
+applyState('Stale', currentValue, { loading: true });
 
 // auto-detect a live backend on load; falls back to demo silently if none found
 startPolling();
@@ -1403,37 +1429,37 @@ function drawSky(dt) {
   gctx.globalAlpha = 1;
 }
 
-function drawMeteor(x, y, w, h) {
+function drawMeteor(ctx, x, y, w, h) {
   if (h <= 0) return;
-  gctx.fillStyle = '#8a7666';
-  gctx.beginPath();
-  gctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
-  gctx.fill();
-  gctx.fillStyle = 'rgba(0,0,0,0.18)';
-  gctx.beginPath();
-  gctx.arc(x + w * 0.35, y + h * 0.4, w * 0.12, 0, Math.PI * 2);
-  gctx.fill();
-  gctx.beginPath();
-  gctx.arc(x + w * 0.62, y + h * 0.62, w * 0.09, 0, Math.PI * 2);
-  gctx.fill();
+  ctx.fillStyle = '#8a7666';
+  ctx.beginPath();
+  ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.beginPath();
+  ctx.arc(x + w * 0.35, y + h * 0.4, w * 0.12, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x + w * 0.62, y + h * 0.62, w * 0.09, 0, Math.PI * 2);
+  ctx.fill();
 }
 
-function drawSatellite(x, y, w, h) {
+function drawSatellite(ctx, x, y, w, h) {
   if (h <= 0) return;
-  gctx.fillStyle = '#B9C2C9';
-  gctx.fillRect(x + w * 0.32, y, w * 0.36, h);
-  gctx.fillStyle = '#4A6FA5';
-  gctx.fillRect(x, y + h * 0.32, w * 0.26, h * 0.36);
-  gctx.fillRect(x + w * 0.74, y + h * 0.32, w * 0.26, h * 0.36);
-  gctx.strokeStyle = '#2A333A';
-  gctx.lineWidth = 1;
-  gctx.strokeRect(x, y + h * 0.32, w * 0.26, h * 0.36);
-  gctx.strokeRect(x + w * 0.74, y + h * 0.32, w * 0.26, h * 0.36);
+  ctx.fillStyle = '#B9C2C9';
+  ctx.fillRect(x + w * 0.32, y, w * 0.36, h);
+  ctx.fillStyle = '#4A6FA5';
+  ctx.fillRect(x, y + h * 0.32, w * 0.26, h * 0.36);
+  ctx.fillRect(x + w * 0.74, y + h * 0.32, w * 0.26, h * 0.36);
+  ctx.strokeStyle = '#2A333A';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y + h * 0.32, w * 0.26, h * 0.36);
+  ctx.strokeRect(x + w * 0.74, y + h * 0.32, w * 0.26, h * 0.36);
 }
 
-function drawObstaclePiece(type, x, y, w, h) {
-  if (type === 'meteor') drawMeteor(x, y, w, h);
-  else drawSatellite(x, y, w, h);
+function drawObstaclePiece(ctx, type, x, y, w, h) {
+  if (type === 'meteor') drawMeteor(ctx, x, y, w, h);
+  else drawSatellite(ctx, x, y, w, h);
 }
 
 // Shared across both minigames so Orbie looks identical in either one.
@@ -1508,8 +1534,8 @@ function gameStep(ts) {
   }
 
   obstacles.forEach(o => {
-    drawObstaclePiece(o.topType, o.x, 0, o.width, o.gapY);
-    drawObstaclePiece(o.bottomType, o.x, o.gapY + o.gap, o.width, gH - (o.gapY + o.gap));
+    drawObstaclePiece(gctx, o.topType, o.x, 0, o.width, o.gapY);
+    drawObstaclePiece(gctx, o.bottomType, o.x, o.gapY + o.gap, o.width, gH - (o.gapY + o.gap));
   });
 
   drawBird();
@@ -1743,8 +1769,8 @@ function hopStep(ts) {
     const y = lane.row * rh + rh * 0.12;
     const h = rh * 0.76;
     lane.obstacles.forEach(o => {
-      if (lane.kind === 'meteor') drawMeteor(o.x, y, o.w, h);
-      else drawSatellite(o.x, y, o.w, h);
+      if (lane.kind === 'meteor') drawMeteor(hctx, o.x, y, o.w, h);
+      else drawSatellite(hctx, o.x, y, o.w, h);
     });
   });
 
@@ -1813,9 +1839,6 @@ window.addEventListener('keydown', (e) => {
   else if (e.key === 'ArrowRight') { e.preventDefault(); tryMove(0, 1); }
 });
 window.addEventListener('resize', () => { if (hopRunning) resizeHopCanvas(); });
-
-// initial paint
-applyState(currentTrend, currentValue);
 </script>
 </body>
 </html>
