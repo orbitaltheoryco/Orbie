@@ -169,26 +169,30 @@
   .play-btn:active { transform: scale(0.92); }
   .hop-icon { left: 10px; right: auto; }
 
-  .hop-controls {
-    position: absolute;
-    bottom: 56px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    z-index: 1001;
+  /* D-pad is for mouse/keyboard users only, and sits below the game
+     frame entirely (not overlapping the canvas) since it's now a
+     sibling of .game-frame rather than absolutely positioned over it.
+     On touch devices it's hidden in favor of the swipe controls the
+     canvas already listens for. */
+  .hop-controls { display: none; }
+  @media (hover: hover) and (pointer: fine) {
+    .hop-controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      margin-top: 14px;
+    }
   }
-  .hop-controls-row { display: flex; gap: 40px; }
+  .hop-controls-row { display: flex; gap: 34px; }
   .dpad-btn {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
     background: rgba(255,255,255,0.08);
     border: 1px solid var(--border);
     color: var(--text);
-    font-size: 18px;
+    font-size: 16px;
     cursor: pointer;
   }
   .dpad-btn:active { background: rgba(255,255,255,0.18); }
@@ -199,6 +203,7 @@
     background: #05070a;
     z-index: 1000;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
   }
@@ -260,6 +265,7 @@
     cursor: pointer;
     z-index: 1002;
   }
+  .music-mute-btn { right: 54px; font-size: 14px; }
 
   .recap-link {
     text-align: center;
@@ -624,6 +630,7 @@
       <canvas id="game-canvas"></canvas>
       <div class="game-score" id="game-score">⭐ 0   best 0</div>
       <div class="game-status-pill" id="game-status-pill">tap or press space to launch</div>
+      <button class="game-close music-mute-btn" id="game-mute-btn" aria-label="Mute music">🔊</button>
       <button class="game-close" id="game-close-btn" aria-label="Close game">✕</button>
     </div>
   </div>
@@ -633,14 +640,15 @@
       <canvas id="hop-canvas"></canvas>
       <div class="game-score" id="hop-score">⭐ 0   best 0   ❤️ 3</div>
       <div class="game-status-pill" id="hop-status-pill">swipe or use arrows to cross</div>
+      <button class="game-close music-mute-btn" id="hop-mute-btn" aria-label="Mute music">🔊</button>
       <button class="game-close" id="hop-close-btn" aria-label="Close game">✕</button>
-      <div class="hop-controls">
-        <button class="dpad-btn" id="hop-up">▲</button>
-        <div class="hop-controls-row">
-          <button class="dpad-btn" id="hop-left">◀</button>
-          <button class="dpad-btn" id="hop-down">▼</button>
-          <button class="dpad-btn" id="hop-right">▶</button>
-        </div>
+    </div>
+    <div class="hop-controls">
+      <button class="dpad-btn" id="hop-up">▲</button>
+      <div class="hop-controls-row">
+        <button class="dpad-btn" id="hop-left">◀</button>
+        <button class="dpad-btn" id="hop-down">▼</button>
+        <button class="dpad-btn" id="hop-right">▶</button>
       </div>
     </div>
   </div>
@@ -1307,6 +1315,140 @@ habitat.addEventListener('pointerup', endPetGesture);
 habitat.addEventListener('pointercancel', endPetGesture);
 
 /* ============================================================
+   8-BIT MUSIC — tiny shared chiptune engine for both minigames.
+   No audio files; everything is square/triangle oscillators
+   scheduled ahead of time (standard Web Audio lookahead pattern)
+   so the loop stays tight. Each game gets its own short tune.
+   ============================================================ */
+let audioCtx = null;
+let musicMasterGain = null;
+let musicMuted = (function () {
+  try { return localStorage.getItem('orbie_music_muted') === '1'; } catch (e) { return false; }
+})();
+let musicTimerId = null;
+let musicNoteIndex = 0;
+let musicNextNoteTime = 0;
+let musicCurrentSong = null;
+
+function ensureAudio() {
+  if (!audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    audioCtx = new AC();
+    musicMasterGain = audioCtx.createGain();
+    musicMasterGain.gain.value = musicMuted ? 0 : 0.16;
+    musicMasterGain.connect(audioCtx.destination);
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+// Note name -> frequency (equal temperament). 0 / falsy = a rest.
+const NOTE_FREQS = (() => {
+  const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const map = {};
+  for (let octave = 1; octave <= 6; octave++) {
+    names.forEach((n, i) => {
+      const midi = (octave + 1) * 12 + i;
+      map[n + octave] = 440 * Math.pow(2, (midi - 69) / 12);
+    });
+  }
+  return map;
+})();
+function noteFreq(note) { return note ? NOTE_FREQS[note] : 0; }
+
+// Bright, bouncy loop for Orbie Flap — major key, upbeat.
+const FLAP_SONG = {
+  step: 140, // ms per step
+  lead: [
+    'C5', 'E5', 'G5', 'E5', 'C5', 'E5', 'G5', 'C6',
+    'B5', 'G5', 'E5', 'G5', 'A5', 'G5', 'E5', 'D5',
+    'C5', 'E5', 'G5', 'E5', 'C5', 'E5', 'G5', 'C6',
+    'D6', 'C6', 'A5', 'G5', 'E5', 'D5', 'C5', 0,
+  ],
+  bass: [
+    'C3', 0, 'C3', 0, 'G2', 0, 'G2', 0,
+    'A2', 0, 'A2', 0, 'F2', 0, 'F2', 0,
+    'C3', 0, 'C3', 0, 'G2', 0, 'G2', 0,
+    'F2', 0, 'G2', 0, 'C3', 0, 0, 0,
+  ],
+};
+
+// Steadier, slightly adventurous minor-key loop for Orbie Hop.
+const HOP_SONG = {
+  step: 150,
+  lead: [
+    'E4', 'G4', 'A4', 'C5', 'A4', 'G4', 'E4', 0,
+    'D4', 'F4', 'G4', 'A4', 'G4', 'F4', 'D4', 0,
+    'E4', 'G4', 'A4', 'C5', 'D5', 'C5', 'A4', 'G4',
+    'F4', 'G4', 'A4', 0, 'G4', 'E4', 'D4', 0,
+  ],
+  bass: [
+    'A2', 0, 0, 0, 'A2', 0, 0, 0,
+    'D2', 0, 0, 0, 'D2', 0, 0, 0,
+    'A2', 0, 0, 0, 'F2', 0, 0, 0,
+    'G2', 0, 0, 0, 'A2', 0, 0, 0,
+  ],
+};
+
+function playChiptuneNote(freqHz, startTime, durSec, type, peakGain) {
+  if (!freqHz) return; // rest
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freqHz, startTime);
+  g.gain.setValueAtTime(0, startTime);
+  g.gain.linearRampToValueAtTime(peakGain, startTime + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, startTime + durSec);
+  osc.connect(g);
+  g.connect(musicMasterGain);
+  osc.start(startTime);
+  osc.stop(startTime + durSec + 0.02);
+}
+
+function scheduleMusic() {
+  if (!musicCurrentSong || !audioCtx) return;
+  const song = musicCurrentSong;
+  const stepSec = song.step / 1000;
+  const len = song.lead.length;
+  while (musicNextNoteTime < audioCtx.currentTime + 0.3) {
+    const i = musicNoteIndex % len;
+    playChiptuneNote(noteFreq(song.lead[i]), musicNextNoteTime, stepSec * 0.9, 'square', 0.11);
+    playChiptuneNote(noteFreq(song.bass[i]), musicNextNoteTime, stepSec * 0.9, 'triangle', 0.15);
+    musicNextNoteTime += stepSec;
+    musicNoteIndex++;
+  }
+}
+
+function startMusic(song) {
+  if (!ensureAudio()) return; // Web Audio unsupported — fail silently
+  stopMusic();
+  musicCurrentSong = song;
+  musicNoteIndex = 0;
+  musicNextNoteTime = audioCtx.currentTime + 0.05;
+  scheduleMusic();
+  musicTimerId = setInterval(scheduleMusic, 100);
+}
+
+function stopMusic() {
+  if (musicTimerId) { clearInterval(musicTimerId); musicTimerId = null; }
+  musicCurrentSong = null;
+}
+
+function updateMuteButtons() {
+  document.querySelectorAll('.music-mute-btn').forEach(b => {
+    b.textContent = musicMuted ? '🔇' : '🔊';
+  });
+}
+function toggleMusicMute() {
+  musicMuted = !musicMuted;
+  try { localStorage.setItem('orbie_music_muted', musicMuted ? '1' : '0'); } catch (e) { /* storage unavailable */ }
+  if (musicMasterGain) musicMasterGain.gain.value = musicMuted ? 0 : 0.16;
+  updateMuteButtons();
+}
+updateMuteButtons();
+
+/* ============================================================
    MINIGAME — "Orbie Flap": tap or press space to flap through
    gaps between meteors and satellites. Orbie keeps whatever
    color the real glucose reading currently has, snapshotted for
@@ -1431,30 +1573,56 @@ function drawSky(dt) {
 
 function drawMeteor(ctx, x, y, w, h) {
   if (h <= 0) return;
-  ctx.fillStyle = '#8a7666';
+  const cx = x + w / 2, cy = y + h / 2, rx = w / 2, ry = h / 2;
+  // Irregular rocky silhouette instead of a plain oval, so it reads as
+  // an asteroid at a glance, plus a stroke so it doesn't blend into a
+  // dark background.
   ctx.beginPath();
-  ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
+  const bumps = 9;
+  for (let i = 0; i <= bumps; i++) {
+    const a = (i / bumps) * Math.PI * 2;
+    const wobble = 0.82 + 0.18 * Math.sin(a * 3 + x * 0.02) + 0.06 * Math.cos(a * 5);
+    const px = cx + Math.cos(a) * rx * wobble;
+    const py = cy + Math.sin(a) * ry * wobble;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fillStyle = '#a3937f';
   ctx.fill();
-  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
   ctx.beginPath();
   ctx.arc(x + w * 0.35, y + h * 0.4, w * 0.12, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
   ctx.arc(x + w * 0.62, y + h * 0.62, w * 0.09, 0, Math.PI * 2);
   ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.beginPath();
+  ctx.arc(x + w * 0.3, y + h * 0.28, w * 0.06, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function drawSatellite(ctx, x, y, w, h) {
   if (h <= 0) return;
-  ctx.fillStyle = '#B9C2C9';
+  ctx.fillStyle = '#D7DEE3';
   ctx.fillRect(x + w * 0.32, y, w * 0.36, h);
-  ctx.fillStyle = '#4A6FA5';
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + w * 0.32, y, w * 0.36, h);
+  ctx.fillStyle = '#5C86C4';
   ctx.fillRect(x, y + h * 0.32, w * 0.26, h * 0.36);
   ctx.fillRect(x + w * 0.74, y + h * 0.32, w * 0.26, h * 0.36);
-  ctx.strokeStyle = '#2A333A';
+  ctx.strokeStyle = '#1B2228';
   ctx.lineWidth = 1;
   ctx.strokeRect(x, y + h * 0.32, w * 0.26, h * 0.36);
   ctx.strokeRect(x + w * 0.74, y + h * 0.32, w * 0.26, h * 0.36);
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.beginPath();
+  ctx.arc(x + w * 0.5, y + h * 0.16, Math.max(1.5, w * 0.045), 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function drawObstaclePiece(ctx, type, x, y, w, h) {
@@ -1543,24 +1711,32 @@ function gameStep(ts) {
 }
 
 function openGame() {
+  ensureAudio(); // must be called synchronously in the click handler for autoplay policies
   gameOverlay.classList.remove('hidden');
   stopPolling(); // pause data polling while playing; resumed on close if we were live
-  initGame();
-  gameRunning = true;
-  lastFrameTime = 0;
-  lastSpawn = 0;
-  gameLoopId = requestAnimationFrame(gameStep);
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      initGame();
+      gameRunning = true;
+      lastFrameTime = 0;
+      lastSpawn = 0;
+      gameLoopId = requestAnimationFrame(gameStep);
+      startMusic(FLAP_SONG);
+    });
+  });
 }
 
 function closeGame() {
   gameRunning = false;
   if (gameLoopId) cancelAnimationFrame(gameLoopId);
   gameOverlay.classList.add('hidden');
+  stopMusic();
   if (!demoForced) startPolling();
 }
 
 playGameBtn.addEventListener('click', openGame);
 document.getElementById('game-close-btn').addEventListener('click', closeGame);
+document.getElementById('game-mute-btn').addEventListener('click', toggleMusicMute);
 gameCanvas.addEventListener('pointerdown', (e) => { e.preventDefault(); flap(); });
 window.addEventListener('keydown', (e) => {
   if (gameOverlay.classList.contains('hidden')) return;
@@ -1653,9 +1829,10 @@ let hopLoopId = null;
 let hopLastTs = 0;
 let hW = 0, hH = 0;
 const HOP_ROWS = 7; // row 0 = goal, row 6 = start
-const HOP_COLS = 7;
+const HOP_COLS = 9;
+const HOP_LANDING_COLS = [0, 2, 4, 6, 8]; // five home pads, like the original arcade game
 let hopCol, hopRow, hopFromRow, hopFromCol, hopAnimT;
-let hopLives, hopScore, hopBest, hopGameOver, hopOrbieColor, hopLanes;
+let hopLives, hopScore, hopBest, hopGameOver, hopOrbieColor, hopLanes, hopStars, hopLandingSpots;
 
 function resizeHopCanvas() {
   const dpr = window.devicePixelRatio || 1;
@@ -1681,21 +1858,31 @@ function initHop() {
   hopScore = 0;
   hopBest = loadHopBest();
   hopGameOver = false;
+  hopLandingSpots = HOP_LANDING_COLS.map(col => ({ col, filled: false }));
   hopLanes = [];
   for (let r = 1; r < HOP_ROWS - 1; r++) {
     const dir = r % 2 === 0 ? 1 : -1;
-    const speed = (40 + r * 12) * dir;
+    const baseSpeed = 40 + r * 12;
+    const speedVariance = 0.65 + Math.random() * 0.7; // ~0.65x–1.35x, so lanes clearly differ pace
+    const speed = baseSpeed * speedVariance * dir;
     const kind = r % 2 === 0 ? 'satellite' : 'meteor';
-    const gap = 190;
+    const gap = 130 + Math.random() * 150; // random spacing per lane, like OG traffic density
     const count = Math.ceil(hW / gap) + 2;
+    const phase = Math.random() * gap; // stagger start so lanes don't line up
     const obstacles = [];
     for (let i = 0; i < count; i++) {
-      obstacles.push({ x: i * gap + (dir > 0 ? -gap : 0), w: 50, h: 30 });
+      obstacles.push({ x: i * gap + (dir > 0 ? -gap : 0) + phase, w: 50, h: 30 });
     }
     hopLanes.push({ row: r, dir, speed, kind, obstacles, gap, count });
   }
+  hopStars = Array.from({ length: 50 }, () => ({
+    x: Math.random() * hW,
+    y: Math.random() * hH,
+    r: Math.random() * 1.5 + 0.4,
+    tw: Math.random() * Math.PI * 2,
+  }));
   updateHopHud();
-  hopStatusEl.textContent = 'swipe or use arrows to cross';
+  hopStatusEl.textContent = 'swipe to cross';
 }
 
 function updateHopHud() {
@@ -1711,13 +1898,24 @@ function tryMove(dr, dc) {
   hopAnimT = 0;
   hopStatusEl.textContent = '';
   if (hopRow === 0) {
-    hopScore++;
-    if (hopScore > hopBest) { hopBest = hopScore; saveHopBest(hopBest); }
-    updateHopHud();
-    hopLanes.forEach(l => { l.speed *= 1.06; }); // a little faster each successful crossing
-    hopRow = HOP_ROWS - 1;
-    hopCol = Math.floor(HOP_COLS / 2);
-    hopFromRow = hopRow; hopFromCol = hopCol; hopAnimT = 1;
+    const spot = hopLandingSpots.find(s => s.col === hopCol);
+    if (spot && !spot.filled) {
+      spot.filled = true;
+      hopScore++;
+      if (hopScore > hopBest) { hopBest = hopScore; saveHopBest(hopBest); }
+      updateHopHud();
+      hopLanes.forEach(l => { l.speed *= 1.04; }); // a little faster each successful crossing
+      if (hopLandingSpots.every(s => s.filled)) {
+        hopLandingSpots.forEach(s => { s.filled = false; }); // full house — new round of pads
+        hopStatusEl.textContent = 'all pads filled! ✨';
+      }
+      hopRow = HOP_ROWS - 1;
+      hopCol = Math.floor(HOP_COLS / 2);
+      hopFromRow = hopRow; hopFromCol = hopCol; hopAnimT = 1;
+    } else {
+      // missed a pad, or that pad's already taken — same as getting hit
+      hopLoseLife();
+    }
   }
 }
 
@@ -1734,13 +1932,55 @@ function hopLoseLife() {
   }
 }
 
-function drawHopBackground() {
+function drawHopBackground(dt) {
   hctx.fillStyle = '#05070a';
   hctx.fillRect(0, 0, hW, hH);
+  (hopStars || []).forEach(s => {
+    s.tw += dt * 2;
+    hctx.globalAlpha = Math.max(0.15, 0.4 + Math.sin(s.tw) * 0.3);
+    hctx.fillStyle = '#EDEAE3';
+    hctx.beginPath();
+    hctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    hctx.fill();
+  });
+  hctx.globalAlpha = 1;
   const { rh } = cellSize();
   for (let r = 0; r < HOP_ROWS; r++) {
-    hctx.fillStyle = (r === 0 || r === HOP_ROWS - 1) ? 'rgba(143,191,127,0.08)' : 'transparent';
+    hctx.fillStyle = (r === 0 || r === HOP_ROWS - 1) ? 'rgba(143,191,127,0.10)' : 'rgba(255,255,255,0.02)';
     hctx.fillRect(0, r * rh, hW, rh);
+    if (r > 0) {
+      hctx.strokeStyle = 'rgba(255,255,255,0.05)';
+      hctx.beginPath();
+      hctx.moveTo(0, r * rh);
+      hctx.lineTo(hW, r * rh);
+      hctx.stroke();
+    }
+  }
+}
+
+function drawHopGoalRow() {
+  const { cw, rh } = cellSize();
+  const y = rh * 0.5;
+  const padR = Math.min(cw, rh) * 0.36;
+  for (let c = 0; c < HOP_COLS; c++) {
+    const x = (c + 0.5) * cw;
+    const spot = hopLandingSpots.find(s => s.col === c);
+    if (spot) {
+      hctx.beginPath();
+      hctx.arc(x, y, padR, 0, Math.PI * 2);
+      hctx.fillStyle = spot.filled ? 'rgba(143,191,127,0.4)' : 'rgba(143,191,127,0.15)';
+      hctx.fill();
+      hctx.strokeStyle = 'rgba(143,191,127,0.7)';
+      hctx.lineWidth = 1.5;
+      hctx.stroke();
+      if (spot.filled) drawOrbieSprite(hctx, x, y, padR * 0.62, hopOrbieColor, 0);
+    } else {
+      // gaps between pads are open space — no safe landing here
+      hctx.fillStyle = 'rgba(255,255,255,0.03)';
+      hctx.beginPath();
+      hctx.arc(x, y, padR * 0.5, 0, Math.PI * 2);
+      hctx.fill();
+    }
   }
 }
 
@@ -1750,7 +1990,8 @@ function hopStep(ts) {
   const dt = Math.min(0.033, (ts - hopLastTs) / 1000);
   hopLastTs = ts;
 
-  drawHopBackground();
+  drawHopBackground(dt);
+  drawHopGoalRow();
   const { cw, rh } = cellSize();
 
   if (!hopGameOver) {
@@ -1792,22 +2033,34 @@ function hopStep(ts) {
 }
 
 function openHop() {
+  ensureAudio(); // must be called synchronously in the click handler for autoplay policies
   hopOverlay.classList.remove('hidden');
   stopPolling();
-  initHop();
-  hopRunning = true;
-  hopLastTs = 0;
-  hopLoopId = requestAnimationFrame(hopStep);
+  // Measuring the canvas synchronously right after removing `hidden` can
+  // read a stale 0×0 size on some mobile browsers, which made everything
+  // draw at zero scale (i.e. nothing visible, just the dark backdrop).
+  // Waiting a frame guarantees the unhide has actually been laid out.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      initHop();
+      hopRunning = true;
+      hopLastTs = 0;
+      hopLoopId = requestAnimationFrame(hopStep);
+      startMusic(HOP_SONG);
+    });
+  });
 }
 function closeHop() {
   hopRunning = false;
   if (hopLoopId) cancelAnimationFrame(hopLoopId);
   hopOverlay.classList.add('hidden');
+  stopMusic();
   if (!demoForced) startPolling();
 }
 
 hopBtn.addEventListener('click', openHop);
 document.getElementById('hop-close-btn').addEventListener('click', closeHop);
+document.getElementById('hop-mute-btn').addEventListener('click', toggleMusicMute);
 document.getElementById('hop-up').addEventListener('click', () => tryMove(-1, 0));
 document.getElementById('hop-down').addEventListener('click', () => tryMove(1, 0));
 document.getElementById('hop-left').addEventListener('click', () => tryMove(0, -1));
