@@ -437,9 +437,19 @@
     opacity: 0.75;
   }
   .refresh-now {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: inherit;
     text-decoration: underline;
     cursor: pointer;
     opacity: 1;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
   }
   .refresh-now:active { opacity: 0.6; }
 
@@ -659,7 +669,7 @@
   </div>
   <div class="trend-word" id="trend-word"><span class="trend-arrow">–</span> waiting for data</div>
   <div class="rate-alert hidden" id="rate-alert"></div>
-  <div class="updated"><span id="updated-word">not connected yet</span> <span id="refresh-now" class="refresh-now">refresh</span></div>
+  <div class="updated"><span id="updated-word">not connected yet</span> <button type="button" id="refresh-now" class="refresh-now">refresh</button></div>
 
   <div class="sim-panel hidden">
     <div class="sim-title">Try each trend state (demo data)</div>
