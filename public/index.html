@@ -725,6 +725,18 @@
    ============================================================ */
 
 let isLive = false;
+
+// If this page is being served at /u/<slug>, it's a visitor's own demo
+// instance (see /try and /api/create-instance) — tag every API call with
+// that slug so the backend knows whose Nightscout to read. With no slug
+// this is the site owner's own deployment and nothing changes.
+const DEMO_SLUG = (() => {
+  const m = window.location.pathname.match(/^\/u\/([a-z0-9]+)/i);
+  return m ? m[1] : null;
+})();
+function apiUrl(path) {
+  return DEMO_SLUG ? `${path}?u=${encodeURIComponent(DEMO_SLUG)}` : path;
+}
 let demoForced = false;
 let hasResolvedFirstPoll = false;
 let pollTimer = null;
@@ -764,7 +776,7 @@ function computeRateOfChange() {
 // { value: number, trend: 'DoubleUp'|'SingleUp'|'Flat'|'SingleDown'|'DoubleDown'|'Stale', timestamp: number, source: string }
 
 async function fetchReading() {
-  const res = await fetch('/api/reading');
+  const res = await fetch(apiUrl('/api/reading'));
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Backend returned ${res.status}`);
@@ -773,7 +785,7 @@ async function fetchReading() {
 }
 
 async function fetchHistory() {
-  const res = await fetch('/api/history');
+  const res = await fetch(apiUrl('/api/history'));
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Backend returned ${res.status}`);
@@ -1765,7 +1777,7 @@ const recapOverlay = document.getElementById('recap-overlay');
 const recapBody = document.getElementById('recap-body');
 
 async function fetchWeeklyRecap() {
-  const res = await fetch('/api/weekly');
+  const res = await fetch(apiUrl('/api/weekly'));
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Backend returned ${res.status}`);

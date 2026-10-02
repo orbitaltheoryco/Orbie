@@ -5,5 +5,8 @@
   "description": "Orbie — a companion pet whose mood matches your glucose trend, backed by Nightscout or LibreLinkUp.",
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "@vercel/kv": "^2.0.0"
   }
 }

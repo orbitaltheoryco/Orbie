@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Try Orbie — bring your own Nightscout</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #12171B;
+    --panel: #1B2228;
+    --panel-hi: #232C33;
+    --text: #EDEAE3;
+    --text-dim: #9AA5AC;
+    --glow: #F2A65A;
+    --low: #6FA8DC;
+    --inrange: #8FBF7F;
+    --high: #E08A5C;
+    --border: #2A333A;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Quicksand', sans-serif;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px 24px;
+  }
+  .orbie-badge {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--inrange);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin: 0 auto 16px;
+  }
+  h1 {
+    font-size: 1.3rem;
+    text-align: center;
+    margin: 0 0 6px;
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin: 0 0 24px;
+  }
+  label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  input[type="text"] {
+    width: 100%;
+    background: var(--panel-hi);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+  input[type="text"]:focus { outline: 2px solid var(--inrange); outline-offset: 1px; }
+  .hint {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin: -10px 0 16px;
+    line-height: 1.5;
+  }
+  button {
+    width: 100%;
+    background: var(--inrange);
+    color: #10251a;
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    border: none;
+    border-radius: 10px;
+    padding: 13px;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.6; cursor: default; }
+  button:active:not(:disabled) { opacity: 0.85; }
+  .status {
+    margin-top: 14px;
+    font-size: 0.85rem;
+    text-align: center;
+    min-height: 1.2em;
+  }
+  .status.error { color: var(--high); }
+  .status.success { color: var(--inrange); }
+  .result {
+    margin-top: 14px;
+    padding: 14px;
+    background: var(--panel-hi);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: none;
+  }
+  .result.visible { display: block; }
+  .result a {
+    color: var(--inrange);
+    word-break: break-all;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+  }
+  .result-note {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+  .footer-note {
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    margin-top: 20px;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="orbie-badge">🪐</div>
+    <h1>Try Orbie with your own data</h1>
+    <p class="subtitle">Paste your Nightscout URL and we'll generate a private link where Orbie reacts to your real glucose trends.</p>
+
+    <form id="try-form">
+      <label for="ns-url">Nightscout URL</label>
+      <input type="text" id="ns-url" placeholder="https://your-site.herokuapp.com" autocomplete="off" required>
+
+      <label for="ns-token">Read-only token (optional)</label>
+      <input type="text" id="ns-token" placeholder="Only needed if your site isn't public" autocomplete="off">
+      <div class="hint">If your Nightscout requires a token, use a read-only one — Orbie only ever reads, never writes. Your link expires automatically after 30 days of no visits.</div>
+
+      <button type="submit" id="submit-btn">Generate my Orbie link</button>
+    </form>
+
+    <div class="status" id="status"></div>
+    <div class="result" id="result">
+      <a href="#" id="result-link" target="_blank" rel="noopener"></a>
+      <div class="result-note">Bookmark it — this is your own private Orbie. Save the link, it won't be shown again.</div>
+    </div>
+
+    <div class="footer-note">Nothing here is medical advice. Orbie is a companion, not a monitor — keep using your usual CGM app and alarms.</div>
+  </div>
+
+<script>
+const form = document.getElementById('try-form');
+const submitBtn = document.getElementById('submit-btn');
+const statusEl = document.getElementById('status');
+const resultEl = document.getElementById('result');
+const resultLink = document.getElementById('result-link');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const nightscoutUrl = document.getElementById('ns-url').value.trim();
+  const nightscoutToken = document.getElementById('ns-token').value.trim();
+
+  statusEl.textContent = 'Checking your Nightscout site…';
+  statusEl.className = 'status';
+  resultEl.classList.remove('visible');
+  submitBtn.disabled = true;
+
+  try {
+    const res = await fetch('/api/create-instance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nightscoutUrl, nightscoutToken: nightscoutToken || undefined }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      statusEl.textContent = data.error || 'Something went wrong — try again.';
+      statusEl.className = 'status error';
+      return;
+    }
+
+    statusEl.textContent = 'Your Orbie is ready!';
+    statusEl.className = 'status success';
+    const fullUrl = `${window.location.origin}${data.url}`;
+    resultLink.href = fullUrl;
+    resultLink.textContent = fullUrl;
+    resultEl.classList.add('visible');
+  } catch (err) {
+    statusEl.textContent = 'Could not reach the server — try again in a moment.';
+    statusEl.className = 'status error';
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
