@@ -65,6 +65,37 @@
     line-height: 1.5;
     margin: 0 0 24px;
   }
+  .explainer {
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel-hi);
+  }
+  .explainer summary {
+    cursor: pointer;
+    padding: 12px 14px;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    list-style: none;
+  }
+  .explainer summary::-webkit-details-marker { display: none; }
+  .explainer summary::before { content: '▸ '; }
+  .explainer[open] summary::before { content: '▾ '; }
+  .explainer-body {
+    padding: 0 14px 14px;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    line-height: 1.55;
+  }
+  .explainer-body p { margin: 0 0 10px; }
+  .explainer-body a {
+    display: inline-block;
+    color: var(--inrange);
+    text-decoration: underline;
+    font-size: 0.8rem;
+    margin-right: 16px;
+  }
+
   label {
     display: block;
     font-size: 0.8rem;
@@ -147,6 +178,16 @@
     <div class="orbie-badge">🪐</div>
     <h1>Try Orbie with your own data</h1>
     <p class="subtitle">Paste your Nightscout URL and we'll generate a private link where Orbie reacts to your real glucose trends.</p>
+
+    <details class="explainer">
+      <summary>Don't know what Nightscout is or how to set it up?</summary>
+      <div class="explainer-body">
+        <p>Nightscout is a free, open-source project that takes the readings from your CGM (Dexcom, Libre, etc.) and puts them on a private web page of your own — that's the URL this form is asking for. It's built and maintained by the diabetes community, not by Orbie.</p>
+        <p>You'll need your own Nightscout site already running before you can use it here — this page can't create one for you. Setup usually takes 15–30 minutes and free hosting options exist.</p>
+        <a href="https://nightscout.github.io/" target="_blank" rel="noopener">Official setup guide →</a>
+        <a href="https://www.nightscout.info/" target="_blank" rel="noopener">What is Nightscout? →</a>
+      </div>
+    </details>
 
     <form id="try-form">
       <label for="ns-url">Nightscout URL</label>
