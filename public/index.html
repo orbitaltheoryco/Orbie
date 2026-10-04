@@ -268,6 +268,7 @@
   .music-mute-btn { right: 54px; font-size: 14px; }
 
   .recap-link {
+    display: block;
     text-align: center;
     margin-top: 14px;
     font-size: 0.82rem;
@@ -276,6 +277,7 @@
     cursor: pointer;
   }
   .recap-link:active { opacity: 0.6; }
+  a.recap-link:visited { color: var(--text-dim); }
 
   .recap-overlay {
     position: fixed;
@@ -688,6 +690,7 @@
   </div>
 
   <div class="recap-link" id="recap-btn">📅 see Orbie's week</div>
+  <a class="recap-link" id="try-own-link" href="/try">🪐 try Orbie with your own data</a>
 
   <div class="recap-overlay hidden" id="recap-overlay">
     <div class="recap-card">
@@ -736,6 +739,12 @@ const DEMO_SLUG = (() => {
 })();
 function apiUrl(path) {
   return DEMO_SLUG ? `${path}?u=${encodeURIComponent(DEMO_SLUG)}` : path;
+}
+// On a visitor's own /u/<slug> page they're already using their own data —
+// no need to invite them to go make another copy of what they're on.
+if (DEMO_SLUG) {
+  const tryOwnLink = document.getElementById('try-own-link');
+  if (tryOwnLink) tryOwnLink.style.display = 'none';
 }
 let demoForced = false;
 let hasResolvedFirstPoll = false;

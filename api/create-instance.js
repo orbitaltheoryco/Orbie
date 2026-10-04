@@ -7,8 +7,10 @@
 // Orbie at /u/<slug> without ever touching env vars or redeploying.
 
 const dns = require('dns').promises;
-const { kv } = require('@vercel/kv');
+const { Redis } = require('@upstash/redis');
 const { createInstance, slugExists } = require('../lib/instances');
+
+const kv = Redis.fromEnv();
 
 const SLUG_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789';
 function randomSlug(length = 8) {
