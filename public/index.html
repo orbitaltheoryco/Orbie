@@ -223,8 +223,15 @@
       border-radius: 12px;
       overflow: hidden;
     }
+    /* Orbie Run is a side-scroller, not a vertical crossing — the shared
+       3:4 portrait frame the other two games use squashes it into a
+       narrow strip. Give it a wide landscape frame instead. */
+    #run-overlay .game-frame {
+      width: min(94vw, 720px, calc(92vh * 16 / 9));
+      aspect-ratio: 16 / 9;
+    }
   }
-  #game-canvas, #hop-canvas {
+  #game-canvas, #hop-canvas, #run-canvas {
     width: 100%;
     height: 100%;
     display: block;
@@ -1636,22 +1643,32 @@ function drawSky(dt) {
 
 function drawMeteor(ctx, x, y, w, h, seed) {
   if (h <= 0) return;
+  // Round the draw position to whole pixels. A jagged multi-point
+  // silhouette redrawn every frame at a sub-pixel scroll offset gets
+  // anti-aliased slightly differently frame to frame, and on a shape
+  // this spiky that reads as the whole rock shimmering/wobbling in
+  // place even though its geometry never changes.
+  x = Math.round(x); y = Math.round(y);
   const cx = x + w / 2, cy = y + h / 2, rx = w / 2, ry = h / 2;
-  // Irregular rocky silhouette instead of a plain oval, so it reads as
-  // an asteroid at a glance, plus a stroke so it doesn't blend into a
-  // dark background. The jagged shape is keyed off a fixed per-obstacle
-  // seed (set once at spawn), NOT the live scroll position — tying it to
-  // x made the silhouette recompute every frame as the rock moved,
-  // which read as the asteroid "wobbling"/writhing in place.
+  // Rocky-but-calm silhouette: a handful of gently uneven points, keyed
+  // off a fixed per-obstacle seed (set once at spawn, not the live scroll
+  // position) and connected with soft curves rather than straight edges,
+  // so it reads as a smooth tumbling rock instead of a spiky, jittery star.
   const s = seed || 0;
-  ctx.beginPath();
-  const bumps = 9;
-  for (let i = 0; i <= bumps; i++) {
+  const bumps = 7;
+  const pts = [];
+  for (let i = 0; i < bumps; i++) {
     const a = (i / bumps) * Math.PI * 2;
-    const wobble = 0.82 + 0.18 * Math.sin(a * 3 + s) + 0.06 * Math.cos(a * 5 + s * 0.6);
-    const px = cx + Math.cos(a) * rx * wobble;
-    const py = cy + Math.sin(a) * ry * wobble;
-    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    const wobble = 0.88 + 0.1 * Math.sin(a * 2 + s) + 0.04 * Math.cos(a * 3 + s * 0.6);
+    pts.push([cx + Math.cos(a) * rx * wobble, cy + Math.sin(a) * ry * wobble]);
+  }
+  ctx.beginPath();
+  for (let i = 0; i < pts.length; i++) {
+    const [px, py] = pts[i];
+    const [nx, ny] = pts[(i + 1) % pts.length];
+    const mx = (px + nx) / 2, my = (py + ny) / 2;
+    if (i === 0) ctx.moveTo(mx, my);
+    else ctx.quadraticCurveTo(px, py, mx, my);
   }
   ctx.closePath();
   ctx.fillStyle = '#a3937f';
@@ -2208,7 +2225,7 @@ const RUN_SPAWN_MIN = 850;  // ms, narrows as speed climbs
 const RUN_SPAWN_MAX = 1500;
 
 let runOrbie, runObstacles, runStars, runScore, runBest, runGameOver, runStarted, runOrbieColor, runGroundY;
-let runNextSpawn = 0, runElapsedSinceSpawn = 0, runDistance = 0;
+let runNextSpawn = 0, runElapsedSinceSpawn = 0, runDistance = 0, runRollAngle = 0;
 
 function initRun() {
   resizeRunCanvas();
@@ -2229,6 +2246,7 @@ function initRun() {
   runGameOver = false;
   runStarted = false;
   runDistance = 0;
+  runRollAngle = 0;
   runElapsedSinceSpawn = 0;
   runNextSpawn = RUN_SPAWN_MAX;
   runStatusEl.textContent = 'tap or press space to start';
@@ -2352,6 +2370,12 @@ function runStep(ts) {
       runOrbie.onGround = true;
     }
 
+    // Orbie visibly rolls forward like a ball — rotation speed matches
+    // ground speed (rolling-without-slipping: ω = v / r), continuing to
+    // spin through jumps too so it doesn't freeze mid-air.
+    runDistance += runSpeed * dt;
+    runRollAngle += (runSpeed / runOrbie.r) * dt;
+
     runElapsedSinceSpawn += dt * 1000;
     if (runElapsedSinceSpawn > runNextSpawn) {
       runElapsedSinceSpawn = 0;
@@ -2380,8 +2404,7 @@ function runStep(ts) {
   }
 
   runObstacles.forEach(drawRunObstacle);
-  const angle = runOrbie.onGround ? 0 : Math.max(-0.35, Math.min(0.2, runOrbie.vy / 1400));
-  drawOrbieSprite(rctx, runOrbie.x, runOrbie.y, runOrbie.r, runOrbieColor, angle);
+  drawOrbieSprite(rctx, runOrbie.x, runOrbie.y, runOrbie.r, runOrbieColor, runRollAngle);
 
   runLoopId = requestAnimationFrame(runStep);
 }
