@@ -225,9 +225,11 @@
     }
     /* Orbie Run is a side-scroller, not a vertical crossing — the shared
        3:4 portrait frame the other two games use squashes it into a
-       narrow strip. Give it a wide landscape frame instead. */
+       narrow strip. Give it a wide landscape frame instead, with a
+       bigger cap than the other two since there's no reason to leave
+       empty space around it on a normal desktop window. */
     #run-overlay .game-frame {
-      width: min(94vw, 720px, calc(92vh * 16 / 9));
+      width: min(94vw, 960px, calc(90vh * 16 / 9));
       aspect-ratio: 16 / 9;
     }
   }
@@ -1714,7 +1716,7 @@ function drawObstaclePiece(ctx, type, x, y, w, h, seed) {
   else drawSatellite(ctx, x, y, w, h);
 }
 
-// Shared across both minigames so Orbie looks identical in either one.
+// Shared across all three minigames so Orbie looks identical in each one.
 function drawOrbieSprite(ctx, cx, cy, r, color, rotation) {
   ctx.save();
   ctx.translate(cx, cy);
@@ -1723,6 +1725,19 @@ function drawOrbieSprite(ctx, cx, cy, r, color, rotation) {
   ctx.beginPath();
   ctx.ellipse(0, 0, r, r * 0.9, 0, 0, Math.PI * 2);
   ctx.fill();
+  // A soft rolling seam fixed to the body (rotates WITH it, unlike the
+  // ears/eyes below which stay upright). Mostly invisible as a texture
+  // detail when Orbie is still or just tilting (Flap, Hop), but sweeping
+  // continuously around the body is what makes the Run game's spin
+  // actually read as rolling rather than a bird gliding sideways.
+  ctx.strokeStyle = 'rgba(0,0,0,0.16)';
+  ctx.lineWidth = Math.max(1, r * 0.07);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, r * 0.78, r * 0.7, 0, 0, Math.PI * 0.85);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(0, 0, r * 0.78, r * 0.7, 0, Math.PI, Math.PI * 1.85);
+  ctx.stroke();
   // ear bumps, echoing the main pet's silhouette
   ctx.beginPath();
   ctx.ellipse(-r * 0.5, -r * 0.75, r * 0.22, r * 0.3, -0.4, 0, Math.PI * 2);
@@ -2217,8 +2232,14 @@ function resizeRunCanvas() {
 function loadRunBest() { try { return Number(localStorage.getItem('orbie_run_best') || 0); } catch (e) { return 0; } }
 function saveRunBest(v) { try { localStorage.setItem('orbie_run_best', String(v)); } catch (e) { /* storage unavailable */ } }
 
-const RUN_GRAVITY = 2200;   // px/s^2
-const RUN_JUMP_VY = -760;   // px/s
+// Gravity/jump velocity are no longer fixed pixel constants — a fixed jump
+// height can easily be taller than the whole canvas on a short, wide
+// desktop window (a 480p game frame leaves much less headroom above the
+// ground than a tall phone screen does), which is exactly what sent Orbie
+// flying off the top. computeRunPhysics() derives both from the actual
+// canvas size, so the jump arc always fits with room to spare.
+let RUN_GRAVITY = 2200;   // px/s^2 — recomputed per canvas size, see computeRunPhysics()
+let RUN_JUMP_VY = -760;   // px/s — recomputed per canvas size, see computeRunPhysics()
 let runSpeed = 230;         // px/s, ramps up over time
 const RUN_SPEED_MAX = 480;
 const RUN_SPAWN_MIN = 850;  // ms, narrows as speed climbs
@@ -2233,6 +2254,7 @@ function initRun() {
   runGroundY = rH * 0.78;
   const r = Math.min(rW, rH) * 0.06;
   runOrbie = { x: rW * 0.2, y: runGroundY - r, vy: 0, r, onGround: true };
+  computeRunPhysics(r);
   runObstacles = [];
   runStars = Array.from({ length: 60 }, () => ({
     x: Math.random() * rW,
@@ -2255,6 +2277,19 @@ function initRun() {
 
 function updateRunScore() {
   runScoreEl.textContent = `⭐ ${runScore}   best ${runBest}`;
+}
+
+// Picks a jump apex as a fraction of the actual headroom above the ground
+// (capped relative to canvas height too), then solves gravity/launch
+// velocity to hit that apex in a fixed amount of time — so the jump always
+// clears obstacles comfortably and never comes close to the top edge,
+// whether the canvas is a tall phone screen or a short, wide desktop frame.
+function computeRunPhysics(r) {
+  const headroom = runGroundY - r;
+  const jumpApex = Math.min(headroom * 0.5, rH * 0.38);
+  const airTimeUp = 0.33; // seconds to reach the apex — keeps the jump feel consistent across sizes
+  RUN_JUMP_VY = -(2 * jumpApex) / airTimeUp;
+  RUN_GRAVITY = (2 * jumpApex) / (airTimeUp * airTimeUp);
 }
 
 function spawnRunObstacle() {
