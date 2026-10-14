@@ -169,6 +169,7 @@
   .play-btn:active { transform: scale(0.92); }
   .hop-icon { left: 10px; right: auto; }
   .run-icon { top: 50px; right: 10px; }
+  .signal-icon { top: 50px; left: 10px; right: auto; }
 
   /* D-pad is for mouse/keyboard users only, and sits below the game
      frame entirely (not overlapping the canvas) since it's now a
@@ -646,6 +647,7 @@
     <button class="play-btn" id="play-game-btn" aria-label="Play Orbie Flap">🎮</button>
     <button class="play-btn hop-icon" id="hop-game-btn" aria-label="Play Orbie Hop">🛸</button>
     <button class="play-btn run-icon" id="run-game-btn" aria-label="Play Orbie Run">☄️</button>
+    <button class="play-btn signal-icon" id="signal-game-btn" aria-label="Play Signal Catch">📡</button>
   </div>
 
   <div class="game-overlay hidden" id="game-overlay">
@@ -683,6 +685,16 @@
       <div class="game-status-pill" id="run-status-pill">tap or press space to jump</div>
       <button class="game-close music-mute-btn" id="run-mute-btn" aria-label="Mute music">🔊</button>
       <button class="game-close" id="run-close-btn" aria-label="Close game">✕</button>
+    </div>
+  </div>
+
+  <div class="game-overlay hidden" id="signal-overlay">
+    <div class="game-frame">
+      <canvas id="signal-canvas"></canvas>
+      <div class="game-score" id="signal-score">⭐ 0   best 0   ❤️ 3</div>
+      <div class="game-status-pill" id="signal-status-pill">drag to catch satellites, dodge meteors</div>
+      <button class="game-close music-mute-btn" id="signal-mute-btn" aria-label="Mute music">🔊</button>
+      <button class="game-close" id="signal-close-btn" aria-label="Close game">✕</button>
     </div>
   </div>
 
@@ -1458,6 +1470,24 @@ const RUN_SONG = {
     'E2', 0, 'B2', 0, 'E2', 0, 'B2', 0,
     'G2', 0, 'D3', 0, 'A2', 0, 'E3', 0,
     'A2', 0, 'E3', 0, 'D3', 0, 0, 0,
+  ],
+};
+
+// Light, twinkly loop for Signal Catch — a gentler, more playful pace than
+// the other three since this one's meant to feel calmer to play.
+const SIGNAL_SONG = {
+  step: 160,
+  lead: [
+    'C5', 0, 'E5', 0, 'G5', 0, 'E5', 0,
+    'D5', 0, 'F5', 0, 'A5', 0, 'F5', 0,
+    'C5', 0, 'E5', 0, 'G5', 0, 'C6', 0,
+    'B5', 'A5', 'G5', 0, 'E5', 0, 'D5', 0,
+  ],
+  bass: [
+    'C3', 0, 0, 0, 'G2', 0, 0, 0,
+    'D3', 0, 0, 0, 'A2', 0, 0, 0,
+    'C3', 0, 0, 0, 'E3', 0, 0, 0,
+    'F2', 0, 0, 0, 'G2', 0, 0, 0,
   ],
 };
 
@@ -2476,6 +2506,238 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'Space') { e.preventDefault(); runJump(); }
 });
 window.addEventListener('resize', () => { if (runRunning) resizeRunCanvas(); });
+
+/* ============================================================
+   MINIGAME 4 — "Signal Catch": satellites drift down from the
+   top in random lanes — drag (or use arrow keys) to slide Orbie
+   side to side along the bottom and catch them. Meteors fall too
+   and cost a life on contact, but a missed satellite just passes
+   by with no penalty — the calmest, lowest-pressure of the four
+   games by design. Reuses the same meteor/satellite art as the
+   other three.
+   ============================================================ */
+
+const signalBtn = document.getElementById('signal-game-btn');
+const signalOverlay = document.getElementById('signal-overlay');
+const signalCanvas = document.getElementById('signal-canvas');
+const sctx = signalCanvas.getContext('2d');
+const signalScoreEl = document.getElementById('signal-score');
+const signalStatusEl = document.getElementById('signal-status-pill');
+
+['pointerdown', 'pointerup', 'pointermove'].forEach(evt =>
+  signalBtn.addEventListener(evt, (e) => e.stopPropagation())
+);
+
+let signalRunning = false;
+let signalLoopId = null;
+let signalLastTs = 0;
+let sW = 0, sH = 0;
+
+function resizeSignalCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  sW = signalCanvas.clientWidth;
+  sH = signalCanvas.clientHeight;
+  signalCanvas.width = sW * dpr;
+  signalCanvas.height = sH * dpr;
+  sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function loadSignalBest() { try { return Number(localStorage.getItem('orbie_signal_best') || 0); } catch (e) { return 0; } }
+function saveSignalBest(v) { try { localStorage.setItem('orbie_signal_best', String(v)); } catch (e) { /* storage unavailable */ } }
+
+let signalOrbie, signalItems, signalStars, signalScore, signalBest, signalLives, signalGameOver, signalStarted, signalOrbieColor, signalCatchY;
+let signalTargetX = 0;
+let signalFallSpeed = 140; // px/s, ramps up gradually
+const SIGNAL_SPEED_MAX = 320;
+let signalNextSpawn = 0, signalElapsedSinceSpawn = 0;
+const SIGNAL_SPAWN_MIN = 550;
+const SIGNAL_SPAWN_MAX = 1100;
+
+function initSignal() {
+  resizeSignalCanvas();
+  signalOrbieColor = rangeColor(currentValue); // same snapshot approach as the other games
+  signalCatchY = sH * 0.88;
+  const r = Math.min(sW, sH) * 0.07;
+  signalOrbie = { x: sW / 2, y: signalCatchY, r, tilt: 0 };
+  signalTargetX = signalOrbie.x;
+  signalItems = [];
+  signalStars = Array.from({ length: 50 }, () => ({
+    x: Math.random() * sW,
+    y: Math.random() * signalCatchY,
+    r: Math.random() * 1.5 + 0.4,
+    tw: Math.random() * Math.PI * 2,
+  }));
+  signalFallSpeed = 140;
+  signalScore = 0;
+  signalBest = loadSignalBest();
+  signalLives = 3;
+  signalGameOver = false;
+  signalStarted = false;
+  signalElapsedSinceSpawn = 0;
+  signalNextSpawn = SIGNAL_SPAWN_MAX;
+  signalStatusEl.textContent = 'drag to catch satellites, dodge meteors';
+  updateSignalHud();
+}
+
+function updateSignalHud() {
+  signalScoreEl.textContent = `⭐ ${signalScore}   best ${signalBest}   ❤️ ${signalLives}`;
+}
+
+function spawnSignalItem() {
+  const isMeteor = Math.random() < 0.3; // satellites are the common case — this is a catching game, not a dodging one
+  const size = Math.min(sW, sH) * (0.09 + Math.random() * 0.03);
+  const margin = size;
+  signalItems.push({
+    x: margin + Math.random() * (sW - margin * 2),
+    y: -size,
+    size,
+    kind: isMeteor ? 'meteor' : 'satellite',
+    seed: Math.random() * Math.PI * 2,
+    caught: false,
+  });
+}
+
+function endSignal() {
+  signalGameOver = true;
+  if (signalScore > signalBest) { signalBest = signalScore; saveSignalBest(signalBest); }
+  signalStatusEl.textContent = 'tap to try again';
+  updateSignalHud();
+}
+
+function drawSignalSky(dt) {
+  sctx.fillStyle = '#05070a';
+  sctx.fillRect(0, 0, sW, sH);
+  signalStars.forEach(s => {
+    s.tw += dt * 2;
+    sctx.globalAlpha = Math.max(0.15, 0.4 + Math.sin(s.tw) * 0.3);
+    sctx.fillStyle = '#EDEAE3';
+    sctx.beginPath();
+    sctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    sctx.fill();
+  });
+  sctx.globalAlpha = 1;
+  // catch line — shows roughly how close to the bottom items need to get
+  sctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  sctx.lineWidth = 1;
+  sctx.setLineDash([4, 6]);
+  sctx.beginPath();
+  sctx.moveTo(0, signalCatchY + signalOrbie.r * 0.9);
+  sctx.lineTo(sW, signalCatchY + signalOrbie.r * 0.9);
+  sctx.stroke();
+  sctx.setLineDash([]);
+}
+
+function signalStep(ts) {
+  if (!signalRunning) return;
+  if (!signalLastTs) signalLastTs = ts;
+  const dt = Math.min(0.033, (ts - signalLastTs) / 1000);
+  signalLastTs = ts;
+
+  drawSignalSky(dt);
+
+  // Orbie smoothly glides toward wherever the pointer/keys last set as the
+  // target, rather than snapping there — reads as controlled sliding
+  // rather than teleporting.
+  const followRate = 10;
+  signalOrbie.x += (signalTargetX - signalOrbie.x) * Math.min(1, followRate * dt);
+  signalOrbie.tilt = Math.max(-0.3, Math.min(0.3, (signalTargetX - signalOrbie.x) * 0.02));
+
+  if (signalStarted && !signalGameOver) {
+    signalFallSpeed = Math.min(SIGNAL_SPEED_MAX, signalFallSpeed + dt * 4);
+
+    signalElapsedSinceSpawn += dt * 1000;
+    if (signalElapsedSinceSpawn > signalNextSpawn) {
+      signalElapsedSinceSpawn = 0;
+      const speedT = (signalFallSpeed - 140) / (SIGNAL_SPEED_MAX - 140);
+      signalNextSpawn = SIGNAL_SPAWN_MAX - (SIGNAL_SPAWN_MAX - SIGNAL_SPAWN_MIN) * speedT;
+      spawnSignalItem();
+    }
+
+    signalItems.forEach(it => { it.y += signalFallSpeed * dt; });
+
+    signalItems.forEach(it => {
+      if (it.caught) return;
+      const hit = circleRectCollide(signalOrbie.x, signalOrbie.y, signalOrbie.r * 0.85, it.x - it.size / 2, it.y - it.size / 2, it.size, it.size);
+      if (hit) {
+        it.caught = true;
+        if (it.kind === 'satellite') {
+          signalScore++;
+          updateSignalHud();
+        } else {
+          signalLives--;
+          updateSignalHud();
+          if (signalLives <= 0) endSignal();
+        }
+      }
+    });
+    signalItems = signalItems.filter(it => !it.caught && it.y - it.size / 2 < sH + 20);
+    // a missed satellite just drifts past — no penalty, this game stays low-pressure
+  }
+
+  signalItems.forEach(it => {
+    const x = it.x - it.size / 2, y = it.y - it.size / 2;
+    if (it.kind === 'meteor') drawMeteor(sctx, x, y, it.size, it.size, it.seed);
+    else drawSatellite(sctx, x, y, it.size, it.size);
+  });
+
+  drawOrbieSprite(sctx, signalOrbie.x, signalOrbie.y, signalOrbie.r, signalOrbieColor, signalOrbie.tilt);
+
+  signalLoopId = requestAnimationFrame(signalStep);
+}
+
+function openSignal() {
+  ensureAudio(); // must be called synchronously in the click handler for autoplay policies
+  signalOverlay.classList.remove('hidden');
+  stopPolling();
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      initSignal();
+      signalRunning = true;
+      signalLastTs = 0;
+      signalLoopId = requestAnimationFrame(signalStep);
+      startMusic(SIGNAL_SONG);
+    });
+  });
+}
+
+function closeSignal() {
+  signalRunning = false;
+  if (signalLoopId) cancelAnimationFrame(signalLoopId);
+  signalOverlay.classList.add('hidden');
+  stopMusic();
+  if (!demoForced) startPolling();
+}
+
+function signalPointerToX(e) {
+  const rect = signalCanvas.getBoundingClientRect();
+  return e.clientX - rect.left;
+}
+
+signalBtn.addEventListener('click', openSignal);
+document.getElementById('signal-close-btn').addEventListener('click', closeSignal);
+document.getElementById('signal-mute-btn').addEventListener('click', toggleMusicMute);
+
+let signalDragging = false;
+signalCanvas.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  if (signalGameOver) { initSignal(); return; }
+  if (!signalStarted) { signalStarted = true; signalStatusEl.textContent = ''; }
+  signalDragging = true;
+  signalTargetX = signalPointerToX(e);
+});
+signalCanvas.addEventListener('pointermove', (e) => {
+  if (!signalDragging) return;
+  signalTargetX = signalPointerToX(e);
+});
+window.addEventListener('pointerup', () => { signalDragging = false; });
+
+window.addEventListener('keydown', (e) => {
+  if (signalOverlay.classList.contains('hidden')) return;
+  const nudge = sW * 0.08;
+  if (e.key === 'ArrowLeft') { e.preventDefault(); if (!signalStarted) signalStarted = true; signalTargetX = Math.max(0, signalTargetX - nudge); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); if (!signalStarted) signalStarted = true; signalTargetX = Math.min(sW, signalTargetX + nudge); }
+});
+window.addEventListener('resize', () => { if (signalRunning) resizeSignalCanvas(); });
 </script>
 </body>
 </html>
