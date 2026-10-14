@@ -168,6 +168,7 @@
   }
   .play-btn:active { transform: scale(0.92); }
   .hop-icon { left: 10px; right: auto; }
+  .run-icon { top: 50px; right: 10px; }
 
   /* D-pad is for mouse/keyboard users only, and sits below the game
      frame entirely (not overlapping the canvas) since it's now a
@@ -635,6 +636,7 @@
     <div class="poke-hint">tap for the last 4 hours · drag to pet</div>
     <button class="play-btn" id="play-game-btn" aria-label="Play Orbie Flap">🎮</button>
     <button class="play-btn hop-icon" id="hop-game-btn" aria-label="Play Orbie Hop">🛸</button>
+    <button class="play-btn run-icon" id="run-game-btn" aria-label="Play Orbie Run">☄️</button>
   </div>
 
   <div class="game-overlay hidden" id="game-overlay">
@@ -662,6 +664,16 @@
         <button class="dpad-btn" id="hop-down">▼</button>
         <button class="dpad-btn" id="hop-right">▶</button>
       </div>
+    </div>
+  </div>
+
+  <div class="game-overlay hidden" id="run-overlay">
+    <div class="game-frame">
+      <canvas id="run-canvas"></canvas>
+      <div class="game-score" id="run-score">⭐ 0   best 0</div>
+      <div class="game-status-pill" id="run-status-pill">tap or press space to jump</div>
+      <button class="game-close music-mute-btn" id="run-mute-btn" aria-label="Mute music">🔊</button>
+      <button class="game-close" id="run-close-btn" aria-label="Close game">✕</button>
     </div>
   </div>
 
@@ -1422,6 +1434,24 @@ const HOP_SONG = {
   ],
 };
 
+// Driving, up-tempo loop for Orbie Run — matches the "keep moving" pace of
+// an endless runner without feeling frantic.
+const RUN_SONG = {
+  step: 125,
+  lead: [
+    'G4', 'B4', 'D5', 'B4', 'G4', 'B4', 'D5', 'G5',
+    'E5', 'D5', 'B4', 'D5', 'G4', 'B4', 'D5', 'B4',
+    'G4', 'B4', 'D5', 'B4', 'A4', 'C5', 'E5', 'C5',
+    'A4', 'C5', 'E5', 'D5', 'B4', 'G4', 'B4', 0,
+  ],
+  bass: [
+    'G2', 0, 'D3', 0, 'G2', 0, 'D3', 0,
+    'E2', 0, 'B2', 0, 'E2', 0, 'B2', 0,
+    'G2', 0, 'D3', 0, 'A2', 0, 'E3', 0,
+    'A2', 0, 'E3', 0, 'D3', 0, 0, 0,
+  ],
+};
+
 function playChiptuneNote(freqHz, startTime, durSec, type, peakGain) {
   if (!freqHz) return; // rest
   const osc = audioCtx.createOscillator();
@@ -1565,6 +1595,8 @@ function spawnObstacle() {
     topType: meteorOnTop ? 'meteor' : 'satellite',
     bottomType: meteorOnTop ? 'satellite' : 'meteor',
     width: 54,
+    topSeed: Math.random() * Math.PI * 2,
+    bottomSeed: Math.random() * Math.PI * 2,
   });
 }
 
@@ -1602,17 +1634,21 @@ function drawSky(dt) {
   gctx.globalAlpha = 1;
 }
 
-function drawMeteor(ctx, x, y, w, h) {
+function drawMeteor(ctx, x, y, w, h, seed) {
   if (h <= 0) return;
   const cx = x + w / 2, cy = y + h / 2, rx = w / 2, ry = h / 2;
   // Irregular rocky silhouette instead of a plain oval, so it reads as
   // an asteroid at a glance, plus a stroke so it doesn't blend into a
-  // dark background.
+  // dark background. The jagged shape is keyed off a fixed per-obstacle
+  // seed (set once at spawn), NOT the live scroll position — tying it to
+  // x made the silhouette recompute every frame as the rock moved,
+  // which read as the asteroid "wobbling"/writhing in place.
+  const s = seed || 0;
   ctx.beginPath();
   const bumps = 9;
   for (let i = 0; i <= bumps; i++) {
     const a = (i / bumps) * Math.PI * 2;
-    const wobble = 0.82 + 0.18 * Math.sin(a * 3 + x * 0.02) + 0.06 * Math.cos(a * 5);
+    const wobble = 0.82 + 0.18 * Math.sin(a * 3 + s) + 0.06 * Math.cos(a * 5 + s * 0.6);
     const px = cx + Math.cos(a) * rx * wobble;
     const py = cy + Math.sin(a) * ry * wobble;
     if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
@@ -1656,8 +1692,8 @@ function drawSatellite(ctx, x, y, w, h) {
   ctx.fill();
 }
 
-function drawObstaclePiece(ctx, type, x, y, w, h) {
-  if (type === 'meteor') drawMeteor(ctx, x, y, w, h);
+function drawObstaclePiece(ctx, type, x, y, w, h, seed) {
+  if (type === 'meteor') drawMeteor(ctx, x, y, w, h, seed);
   else drawSatellite(ctx, x, y, w, h);
 }
 
@@ -1733,8 +1769,8 @@ function gameStep(ts) {
   }
 
   obstacles.forEach(o => {
-    drawObstaclePiece(gctx, o.topType, o.x, 0, o.width, o.gapY);
-    drawObstaclePiece(gctx, o.bottomType, o.x, o.gapY + o.gap, o.width, gH - (o.gapY + o.gap));
+    drawObstaclePiece(gctx, o.topType, o.x, 0, o.width, o.gapY, o.topSeed);
+    drawObstaclePiece(gctx, o.bottomType, o.x, o.gapY + o.gap, o.width, gH - (o.gapY + o.gap), o.bottomSeed);
   });
 
   drawBird();
@@ -1893,16 +1929,20 @@ function initHop() {
   hopLanes = [];
   for (let r = 1; r < HOP_ROWS - 1; r++) {
     const dir = r % 2 === 0 ? 1 : -1;
-    const baseSpeed = 40 + r * 12;
-    const speedVariance = 0.65 + Math.random() * 0.7; // ~0.65x–1.35x, so lanes clearly differ pace
+    // Slower base pace and a narrower variance band than before — the old
+    // range (0.65x–1.35x on top of a steep per-row ramp) made several lanes
+    // feel like a wall of traffic with almost no reaction window. This keeps
+    // lanes still clearly different speeds, just less punishing overall.
+    const baseSpeed = 32 + r * 8;
+    const speedVariance = 0.8 + Math.random() * 0.4; // ~0.8x–1.2x
     const speed = baseSpeed * speedVariance * dir;
     const kind = r % 2 === 0 ? 'satellite' : 'meteor';
-    const gap = 130 + Math.random() * 150; // random spacing per lane, like OG traffic density
+    const gap = 150 + Math.random() * 160; // wider spacing = more breathing room between obstacles
     const count = Math.ceil(hW / gap) + 2;
     const phase = Math.random() * gap; // stagger start so lanes don't line up
     const obstacles = [];
     for (let i = 0; i < count; i++) {
-      obstacles.push({ x: i * gap + (dir > 0 ? -gap : 0) + phase, w: 50, h: 30 });
+      obstacles.push({ x: i * gap + (dir > 0 ? -gap : 0) + phase, w: 50, h: 30, seed: Math.random() * Math.PI * 2 });
     }
     hopLanes.push({ row: r, dir, speed, kind, obstacles, gap, count });
   }
@@ -1935,7 +1975,7 @@ function tryMove(dr, dc) {
       hopScore++;
       if (hopScore > hopBest) { hopBest = hopScore; saveHopBest(hopBest); }
       updateHopHud();
-      hopLanes.forEach(l => { l.speed *= 1.04; }); // a little faster each successful crossing
+      hopLanes.forEach(l => { l.speed *= 1.02; }); // a little faster each successful crossing (gentler ramp than before)
       if (hopLandingSpots.every(s => s.filled)) {
         hopLandingSpots.forEach(s => { s.filled = false; }); // full house — new round of pads
         hopStatusEl.textContent = 'all pads filled! ✨';
@@ -2034,14 +2074,14 @@ function hopStep(ts) {
         if (lane.dir < 0 && o.x + o.w < 0) o.x += loopWidth;
       });
     });
-    hopAnimT = Math.min(1, hopAnimT + dt * 6);
+    hopAnimT = Math.min(1, hopAnimT + dt * 4.5); // slightly slower hop glide so moves read as fluid, not a snap
   }
 
   hopLanes.forEach(lane => {
     const y = lane.row * rh + rh * 0.12;
     const h = rh * 0.76;
     lane.obstacles.forEach(o => {
-      if (lane.kind === 'meteor') drawMeteor(hctx, o.x, y, o.w, h);
+      if (lane.kind === 'meteor') drawMeteor(hctx, o.x, y, o.w, h, o.seed);
       else drawSatellite(hctx, o.x, y, o.w, h);
     });
   });
@@ -2123,6 +2163,261 @@ window.addEventListener('keydown', (e) => {
   else if (e.key === 'ArrowRight') { e.preventDefault(); tryMove(0, 1); }
 });
 window.addEventListener('resize', () => { if (hopRunning) resizeHopCanvas(); });
+
+/* ============================================================
+   MINIGAME 3 — "Orbie Run": a Chrome-dino-style endless runner.
+   Orbie rolls along the ground through space; tap/space jumps
+   over asteroids and comets. Reuses the shared sprite/meteor
+   drawing so Orbie stays visually consistent across all three
+   games.
+   ============================================================ */
+
+const runBtn = document.getElementById('run-game-btn');
+const runOverlay = document.getElementById('run-overlay');
+const runCanvas = document.getElementById('run-canvas');
+const rctx = runCanvas.getContext('2d');
+const runScoreEl = document.getElementById('run-score');
+const runStatusEl = document.getElementById('run-status-pill');
+
+['pointerdown', 'pointerup', 'pointermove'].forEach(evt =>
+  runBtn.addEventListener(evt, (e) => e.stopPropagation())
+);
+
+let runRunning = false;
+let runLoopId = null;
+let runLastTs = 0;
+let rW = 0, rH = 0;
+
+function resizeRunCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  rW = runCanvas.clientWidth;
+  rH = runCanvas.clientHeight;
+  runCanvas.width = rW * dpr;
+  runCanvas.height = rH * dpr;
+  rctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function loadRunBest() { try { return Number(localStorage.getItem('orbie_run_best') || 0); } catch (e) { return 0; } }
+function saveRunBest(v) { try { localStorage.setItem('orbie_run_best', String(v)); } catch (e) { /* storage unavailable */ } }
+
+const RUN_GRAVITY = 2200;   // px/s^2
+const RUN_JUMP_VY = -760;   // px/s
+let runSpeed = 230;         // px/s, ramps up over time
+const RUN_SPEED_MAX = 480;
+const RUN_SPAWN_MIN = 850;  // ms, narrows as speed climbs
+const RUN_SPAWN_MAX = 1500;
+
+let runOrbie, runObstacles, runStars, runScore, runBest, runGameOver, runStarted, runOrbieColor, runGroundY;
+let runNextSpawn = 0, runElapsedSinceSpawn = 0, runDistance = 0;
+
+function initRun() {
+  resizeRunCanvas();
+  runOrbieColor = rangeColor(currentValue); // same snapshot approach as the other two games
+  runGroundY = rH * 0.78;
+  const r = Math.min(rW, rH) * 0.06;
+  runOrbie = { x: rW * 0.2, y: runGroundY - r, vy: 0, r, onGround: true };
+  runObstacles = [];
+  runStars = Array.from({ length: 60 }, () => ({
+    x: Math.random() * rW,
+    y: Math.random() * runGroundY,
+    r: Math.random() * 1.6 + 0.4,
+    tw: Math.random() * Math.PI * 2,
+  }));
+  runSpeed = 230;
+  runScore = 0;
+  runBest = loadRunBest();
+  runGameOver = false;
+  runStarted = false;
+  runDistance = 0;
+  runElapsedSinceSpawn = 0;
+  runNextSpawn = RUN_SPAWN_MAX;
+  runStatusEl.textContent = 'tap or press space to start';
+  updateRunScore();
+}
+
+function updateRunScore() {
+  runScoreEl.textContent = `⭐ ${runScore}   best ${runBest}`;
+}
+
+function spawnRunObstacle() {
+  const kind = Math.random() < 0.6 ? 'meteor' : 'comet';
+  const h = (Math.min(rW, rH) * (0.08 + Math.random() * 0.05));
+  const w = kind === 'comet' ? h * 2.2 : h * 1.1;
+  runObstacles.push({
+    x: rW + 20,
+    w, h,
+    y: runGroundY - h,
+    kind,
+    passed: false,
+    seed: Math.random() * Math.PI * 2,
+  });
+}
+
+function runJump() {
+  if (runGameOver) { initRun(); return; }
+  if (!runStarted) { runStarted = true; runStatusEl.textContent = ''; }
+  if (runOrbie.onGround) {
+    runOrbie.vy = RUN_JUMP_VY;
+    runOrbie.onGround = false;
+  }
+}
+
+function endRun() {
+  runGameOver = true;
+  if (runScore > runBest) { runBest = runScore; saveRunBest(runBest); }
+  runStatusEl.textContent = 'tap to try again';
+  updateRunScore();
+}
+
+function drawComet(ctx, x, y, w, h, seed) {
+  if (h <= 0) return;
+  // Icy core plus a trailing glow tail pointing back the way it came
+  // (comets travel right-to-left here, so the tail streams to the right).
+  const r = h / 2;
+  const cx = x + r, cy = y + r;
+  const tailLen = w - r;
+  const grad = ctx.createLinearGradient(cx, cy, cx + tailLen, cy);
+  grad.addColorStop(0, 'rgba(173,216,255,0.5)');
+  grad.addColorStop(1, 'rgba(173,216,255,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r * 0.55);
+  ctx.lineTo(cx + tailLen, cy);
+  ctx.lineTo(cx, cy + r * 0.55);
+  ctx.closePath();
+  ctx.fill();
+
+  const s = seed || 0;
+  ctx.beginPath();
+  const bumps = 8;
+  for (let i = 0; i <= bumps; i++) {
+    const a = (i / bumps) * Math.PI * 2;
+    const wobble = 0.85 + 0.15 * Math.sin(a * 3 + s);
+    const px = cx + Math.cos(a) * r * wobble;
+    const py = cy + Math.sin(a) * r * wobble;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fillStyle = '#CFE8FF';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+function drawRunObstacle(o) {
+  if (o.kind === 'comet') drawComet(rctx, o.x, o.y, o.w, o.h, o.seed);
+  else drawMeteor(rctx, o.x, o.y, o.w, o.h, o.seed);
+}
+
+function drawRunSky(dt) {
+  rctx.fillStyle = '#05070a';
+  rctx.fillRect(0, 0, rW, rH);
+  runStars.forEach(s => {
+    s.tw += dt * 2;
+    rctx.globalAlpha = Math.max(0.15, 0.4 + Math.sin(s.tw) * 0.3);
+    rctx.fillStyle = '#EDEAE3';
+    rctx.beginPath();
+    rctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    rctx.fill();
+  });
+  rctx.globalAlpha = 1;
+  // ground line — gives a clear "floor" to read jumps against
+  rctx.strokeStyle = 'rgba(255,255,255,0.14)';
+  rctx.lineWidth = 2;
+  rctx.beginPath();
+  rctx.moveTo(0, runGroundY);
+  rctx.lineTo(rW, runGroundY);
+  rctx.stroke();
+}
+
+function runStep(ts) {
+  if (!runRunning) return;
+  if (!runLastTs) runLastTs = ts;
+  const dt = Math.min(0.033, (ts - runLastTs) / 1000);
+  runLastTs = ts;
+
+  drawRunSky(dt);
+
+  if (runStarted && !runGameOver) {
+    // gentle, gradual ramp rather than a hard difficulty jump
+    runSpeed = Math.min(RUN_SPEED_MAX, runSpeed + dt * 6);
+
+    runOrbie.vy += RUN_GRAVITY * dt;
+    runOrbie.y += runOrbie.vy * dt;
+    const floorY = runGroundY - runOrbie.r;
+    if (runOrbie.y >= floorY) {
+      runOrbie.y = floorY;
+      runOrbie.vy = 0;
+      runOrbie.onGround = true;
+    }
+
+    runElapsedSinceSpawn += dt * 1000;
+    if (runElapsedSinceSpawn > runNextSpawn) {
+      runElapsedSinceSpawn = 0;
+      // spawn window narrows slightly as speed climbs, but stays well clear
+      // of a wall-of-obstacles pace
+      const speedT = (runSpeed - 230) / (RUN_SPEED_MAX - 230);
+      runNextSpawn = RUN_SPAWN_MAX - (RUN_SPAWN_MAX - RUN_SPAWN_MIN) * speedT;
+      spawnRunObstacle();
+    }
+
+    runObstacles.forEach(o => { o.x -= runSpeed * dt; });
+    runObstacles = runObstacles.filter(o => o.x + o.w > -20);
+
+    runObstacles.forEach(o => {
+      if (!o.passed && o.x + o.w < runOrbie.x) {
+        o.passed = true;
+        runScore++;
+        updateRunScore();
+      }
+      if (circleRectCollide(runOrbie.x, runOrbie.y, runOrbie.r * 0.8, o.x, o.y, o.w, o.h)) {
+        endRun();
+      }
+    });
+  } else if (!runStarted) {
+    runOrbie.y = runGroundY - runOrbie.r + Math.sin(ts / 300) * 4; // gentle idle bob before launch
+  }
+
+  runObstacles.forEach(drawRunObstacle);
+  const angle = runOrbie.onGround ? 0 : Math.max(-0.35, Math.min(0.2, runOrbie.vy / 1400));
+  drawOrbieSprite(rctx, runOrbie.x, runOrbie.y, runOrbie.r, runOrbieColor, angle);
+
+  runLoopId = requestAnimationFrame(runStep);
+}
+
+function openRun() {
+  ensureAudio(); // must be called synchronously in the click handler for autoplay policies
+  runOverlay.classList.remove('hidden');
+  stopPolling();
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      initRun();
+      runRunning = true;
+      runLastTs = 0;
+      runLoopId = requestAnimationFrame(runStep);
+      startMusic(RUN_SONG);
+    });
+  });
+}
+
+function closeRun() {
+  runRunning = false;
+  if (runLoopId) cancelAnimationFrame(runLoopId);
+  runOverlay.classList.add('hidden');
+  stopMusic();
+  if (!demoForced) startPolling();
+}
+
+runBtn.addEventListener('click', openRun);
+document.getElementById('run-close-btn').addEventListener('click', closeRun);
+document.getElementById('run-mute-btn').addEventListener('click', toggleMusicMute);
+runCanvas.addEventListener('pointerdown', (e) => { e.preventDefault(); runJump(); });
+window.addEventListener('keydown', (e) => {
+  if (runOverlay.classList.contains('hidden')) return;
+  if (e.code === 'Space') { e.preventDefault(); runJump(); }
+});
+window.addEventListener('resize', () => { if (runRunning) resizeRunCanvas(); });
 </script>
 </body>
 </html>
