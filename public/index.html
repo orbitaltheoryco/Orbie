@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Orbie — Glucose Companion</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -210,6 +210,12 @@
     justify-content: center;
   }
   .game-overlay.hidden { display: none; }
+  /* Rapid taps to restart a game (tap canvas → game over → tap again) can
+     get mistaken by the browser for a double-tap-to-zoom gesture, which on
+     some mobile browsers zooms the whole page in and leaves it that way.
+     touch-action:manipulation here (and on the canvases above) tells the
+     browser these taps are for the app, not for its own zoom gestures. */
+  .game-overlay { touch-action: manipulation; }
   .game-frame {
     position: relative;
     width: 100%;
@@ -234,7 +240,7 @@
       aspect-ratio: 16 / 9;
     }
   }
-  #game-canvas, #hop-canvas, #run-canvas {
+  #game-canvas, #hop-canvas, #run-canvas, #signal-canvas {
     width: 100%;
     height: 100%;
     display: block;
@@ -751,6 +757,14 @@
 </div>
 
 <script>
+// iOS Safari ignores the viewport meta tag's user-scalable=no/maximum-scale
+// for pinch-zoom (an intentional accessibility override since iOS 10), so a
+// quick double-tap or pinch while restarting a minigame can still zoom the
+// whole page in and leave it that way. 'gesturestart' is Safari's own
+// pinch-begin event — preventing it is the standard way to block that,
+// since this app has nothing that benefits from page-level zoom anyway.
+document.addEventListener('gesturestart', (e) => e.preventDefault());
+
 /* ============================================================
    DATA LAYER — Orbie is deployed alongside its own backend
    (same Vercel project, same origin), so it just tries the
@@ -1746,7 +1760,7 @@ function drawObstaclePiece(ctx, type, x, y, w, h, seed) {
   else drawSatellite(ctx, x, y, w, h);
 }
 
-// Shared across all three minigames so Orbie looks identical in each one.
+// Shared across all four minigames so Orbie looks identical in each one.
 function drawOrbieSprite(ctx, cx, cy, r, color, rotation) {
   ctx.save();
   ctx.translate(cx, cy);
@@ -1755,19 +1769,6 @@ function drawOrbieSprite(ctx, cx, cy, r, color, rotation) {
   ctx.beginPath();
   ctx.ellipse(0, 0, r, r * 0.9, 0, 0, Math.PI * 2);
   ctx.fill();
-  // A soft rolling seam fixed to the body (rotates WITH it, unlike the
-  // ears/eyes below which stay upright). Mostly invisible as a texture
-  // detail when Orbie is still or just tilting (Flap, Hop), but sweeping
-  // continuously around the body is what makes the Run game's spin
-  // actually read as rolling rather than a bird gliding sideways.
-  ctx.strokeStyle = 'rgba(0,0,0,0.16)';
-  ctx.lineWidth = Math.max(1, r * 0.07);
-  ctx.beginPath();
-  ctx.ellipse(0, 0, r * 0.78, r * 0.7, 0, 0, Math.PI * 0.85);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.ellipse(0, 0, r * 0.78, r * 0.7, 0, Math.PI, Math.PI * 1.85);
-  ctx.stroke();
   // ear bumps, echoing the main pet's silhouette
   ctx.beginPath();
   ctx.ellipse(-r * 0.5, -r * 0.75, r * 0.22, r * 0.3, -0.4, 0, Math.PI * 2);
@@ -2323,7 +2324,27 @@ function computeRunPhysics(r) {
 }
 
 function spawnRunObstacle() {
-  const kind = Math.random() < 0.6 ? 'meteor' : 'comet';
+  const roll = Math.random();
+  // Ground obstacles (meteor/comet) have to be jumped over. Flying ones
+  // hover right above standing head height — safe if Orbie stays on the
+  // ground, but a jump timed into one will hit it — so clearing a run
+  // isn't just "always jump", it alternates what the right move is.
+  if (roll >= 0.7) {
+    const h = Math.min(rW, rH) * 0.11;
+    const w = h * 1.5;
+    const clearance = Math.max(10, runOrbie.r * 0.4); // gap above a standing Orbie
+    const bottom = runGroundY - runOrbie.r * 2 - clearance;
+    runObstacles.push({
+      x: rW + 20,
+      w, h,
+      y: bottom - h,
+      kind: 'flying',
+      passed: false,
+      seed: Math.random() * Math.PI * 2,
+    });
+    return;
+  }
+  const kind = roll < 0.45 ? 'meteor' : 'comet';
   const h = (Math.min(rW, rH) * (0.08 + Math.random() * 0.05));
   const w = kind === 'comet' ? h * 2.2 : h * 1.1;
   runObstacles.push({
@@ -2334,6 +2355,15 @@ function spawnRunObstacle() {
     passed: false,
     seed: Math.random() * Math.PI * 2,
   });
+}
+
+// The comet's bounding box includes its trailing tail for drawing, but the
+// tail is just a translucent glow — it shouldn't be able to hit Orbie. The
+// real hitbox is just the icy core, which sits in the leading (left) h×h
+// square of the box.
+function runObstacleHitbox(o) {
+  if (o.kind === 'comet') return { x: o.x, y: o.y, w: o.h, h: o.h };
+  return { x: o.x, y: o.y, w: o.w, h: o.h };
 }
 
 function runJump() {
@@ -2390,6 +2420,7 @@ function drawComet(ctx, x, y, w, h, seed) {
 
 function drawRunObstacle(o) {
   if (o.kind === 'comet') drawComet(rctx, o.x, o.y, o.w, o.h, o.seed);
+  else if (o.kind === 'flying') drawSatellite(rctx, o.x, o.y, o.w, o.h);
   else drawMeteor(rctx, o.x, o.y, o.w, o.h, o.seed);
 }
 
@@ -2455,12 +2486,13 @@ function runStep(ts) {
     runObstacles = runObstacles.filter(o => o.x + o.w > -20);
 
     runObstacles.forEach(o => {
-      if (!o.passed && o.x + o.w < runOrbie.x) {
+      const hb = runObstacleHitbox(o);
+      if (!o.passed && hb.x + hb.w < runOrbie.x) {
         o.passed = true;
         runScore++;
         updateRunScore();
       }
-      if (circleRectCollide(runOrbie.x, runOrbie.y, runOrbie.r * 0.8, o.x, o.y, o.w, o.h)) {
+      if (circleRectCollide(runOrbie.x, runOrbie.y, runOrbie.r * 0.8, hb.x, hb.y, hb.w, hb.h)) {
         endRun();
       }
     });
