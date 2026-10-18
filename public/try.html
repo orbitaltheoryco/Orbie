@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Try Orbie — bring your own Nightscout</title>
+<title>Try Orbie — bring your own data</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,237 +21,335 @@
     --border: #2A333A;
   }
   * { box-sizing: border-box; }
-  html, body {
-    height: 100%;
+  [hidden] { display: none !important; }
+  html { background: var(--bg); }
+  body {
+    min-height: 100%;
     margin: 0;
     background: var(--bg);
     color: var(--text);
     font-family: 'Quicksand', sans-serif;
-  }
-  body {
     display: flex;
-    align-items: center;
-    justify-content: center;
     padding: 24px;
   }
+  /* margin:auto centers the card but, unlike align-items:center, never
+     clips the top of a tall card on a small screen. */
   .card {
     width: 100%;
-    max-width: 420px;
+    max-width: 440px;
+    margin: auto;
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 20px;
     padding: 28px 24px;
   }
   .orbie-badge {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
+    width: 56px; height: 56px; border-radius: 50%;
     background: var(--inrange);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
-    margin: 0 auto 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; margin: 0 auto 16px;
   }
-  h1 {
-    font-size: 1.3rem;
-    text-align: center;
-    margin: 0 0 6px;
+  h1 { font-size: 1.3rem; text-align: center; margin: 0 0 6px; }
+  .subtitle { text-align: center; color: var(--text-dim); font-size: 0.9rem; line-height: 1.5; margin: 0 0 20px; }
+
+  /* source switcher */
+  .tabs {
+    display: flex; gap: 4px; padding: 4px; margin-bottom: 20px;
+    background: var(--panel-hi); border: 1px solid var(--border); border-radius: 12px;
   }
-  .subtitle {
-    text-align: center;
-    color: var(--text-dim);
-    font-size: 0.9rem;
-    line-height: 1.5;
-    margin: 0 0 24px;
+  .tab {
+    flex: 1; width: auto; padding: 10px 8px; border-radius: 9px;
+    background: transparent; color: var(--text-dim);
+    font-size: 0.88rem; font-weight: 700; border: none; cursor: pointer;
   }
-  .explainer {
-    margin-bottom: 20px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--panel-hi);
-  }
-  .explainer summary {
-    cursor: pointer;
-    padding: 12px 14px;
-    font-size: 0.82rem;
-    color: var(--text-dim);
-    list-style: none;
-  }
+  .tab[aria-selected="true"] { background: var(--inrange); color: #10251a; }
+  .tab:focus-visible { outline: 2px solid var(--glow); outline-offset: 2px; }
+
+  .explainer { margin-bottom: 20px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel-hi); }
+  .explainer summary { cursor: pointer; padding: 12px 14px; font-size: 0.82rem; color: var(--text-dim); list-style: none; }
   .explainer summary::-webkit-details-marker { display: none; }
   .explainer summary::before { content: '▸ '; }
   .explainer[open] summary::before { content: '▾ '; }
-  .explainer-body {
-    padding: 0 14px 14px;
-    font-size: 0.8rem;
-    color: var(--text-dim);
-    line-height: 1.55;
-  }
+  .explainer-body { padding: 0 14px 14px; font-size: 0.8rem; color: var(--text-dim); line-height: 1.55; }
   .explainer-body p { margin: 0 0 10px; }
-  .explainer-body a {
-    display: inline-block;
-    color: var(--inrange);
-    text-decoration: underline;
-    font-size: 0.8rem;
-    margin-right: 16px;
-  }
+  .explainer-body ol { margin: 0 0 10px; padding-left: 18px; }
+  .explainer-body li { margin-bottom: 6px; }
+  .explainer-body strong { color: var(--text); font-weight: 600; }
+  .explainer-body a { display: inline-block; color: var(--inrange); text-decoration: underline; font-size: 0.8rem; margin-right: 16px; }
 
-  label {
-    display: block;
-    font-size: 0.8rem;
-    color: var(--text-dim);
-    margin-bottom: 6px;
+  .notice {
+    margin: 0 0 16px; padding: 12px 14px;
+    background: rgba(242,166,90,0.08); border: 1px solid rgba(242,166,90,0.35); border-radius: 10px;
+    font-size: 0.78rem; line-height: 1.55; color: var(--text-dim);
   }
-  input[type="text"] {
+  .notice strong { color: var(--text); }
+  .notice p { margin: 0 0 8px; }
+  .notice p:last-child { margin-bottom: 0; }
+  .notice a { color: var(--inrange); }
+
+  label { display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 6px; }
+  input[type="text"], input[type="email"], input[type="password"], select {
     width: 100%;
-    background: var(--panel-hi);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    color: var(--text);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.85rem;
-    padding: 12px 14px;
-    margin-bottom: 16px;
+    background: var(--panel-hi); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
+    padding: 12px 14px; margin-bottom: 16px;
   }
-  input[type="text"]:focus { outline: 2px solid var(--inrange); outline-offset: 1px; }
-  input[type="text"]::placeholder { font-size: 0.78rem; }
-  .hint {
-    font-size: 0.75rem;
-    color: var(--text-dim);
-    margin: -10px 0 16px;
-    line-height: 1.5;
-  }
-  button {
-    width: 100%;
-    background: var(--inrange);
-    color: #10251a;
-    font-family: 'Quicksand', sans-serif;
-    font-weight: 700;
-    font-size: 0.95rem;
-    border: none;
-    border-radius: 10px;
-    padding: 13px;
-    cursor: pointer;
+  select { font-family: 'Quicksand', sans-serif; font-size: 0.95rem; }
+  input:focus, select:focus { outline: 2px solid var(--inrange); outline-offset: 1px; }
+  input::placeholder { font-size: 0.78rem; color: #6B747B; }
+  .hint { font-size: 0.75rem; color: var(--text-dim); margin: -10px 0 16px; line-height: 1.5; }
+
+  .consent { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 16px; font-size: 0.8rem; line-height: 1.45; color: var(--text); }
+  .consent input { width: 18px; height: 18px; margin: 2px 0 0; flex: none; accent-color: var(--inrange); }
+  .consent label { margin: 0; color: var(--text); font-size: 0.8rem; }
+
+  button[type="submit"] {
+    width: 100%; background: var(--inrange); color: #10251a;
+    font-family: 'Quicksand', sans-serif; font-weight: 700; font-size: 0.95rem;
+    border: none; border-radius: 10px; padding: 13px; cursor: pointer;
   }
   button:disabled { opacity: 0.6; cursor: default; }
-  button:active:not(:disabled) { opacity: 0.85; }
-  .status {
-    margin-top: 14px;
-    font-size: 0.85rem;
-    text-align: center;
-    min-height: 1.2em;
-  }
+  button[type="submit"]:active:not(:disabled) { opacity: 0.85; }
+
+  .status { margin-top: 14px; font-size: 0.85rem; text-align: center; min-height: 1.2em; line-height: 1.45; }
   .status.error { color: var(--high); }
   .status.success { color: var(--inrange); }
-  .result {
-    margin-top: 14px;
-    padding: 14px;
-    background: var(--panel-hi);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    display: none;
-  }
-  .result.visible { display: block; }
-  .result a {
-    color: var(--inrange);
-    word-break: break-all;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.85rem;
-  }
-  .result-note {
-    font-size: 0.75rem;
-    color: var(--text-dim);
-    margin-top: 8px;
-    line-height: 1.5;
-  }
-  .footer-note {
-    text-align: center;
-    font-size: 0.72rem;
-    color: var(--text-dim);
-    margin-top: 20px;
-    line-height: 1.6;
-  }
+  .result { margin-top: 14px; padding: 14px; background: var(--panel-hi); border: 1px solid var(--border); border-radius: 10px; }
+  .result a { color: var(--inrange); word-break: break-all; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+  .result-note { font-size: 0.75rem; color: var(--text-dim); margin-top: 8px; line-height: 1.5; }
+  .result-note + .result-note { margin-top: 6px; }
+  .footer-note { text-align: center; font-size: 0.72rem; color: var(--text-dim); margin-top: 20px; line-height: 1.6; }
 </style>
 </head>
 <body>
   <div class="card">
     <div class="orbie-badge">🪐</div>
     <h1>Try Orbie with your own data</h1>
-    <p class="subtitle">Paste your Nightscout URL and we'll generate a private link where Orbie reacts to your real glucose trends.</p>
+    <p class="subtitle">Choose where your glucose data comes from and we'll generate a private link where Orbie reacts to your real readings.</p>
 
-    <details class="explainer">
-      <summary>Don't know what Nightscout is or how to set it up?</summary>
-      <div class="explainer-body">
-        <p>Nightscout is a free, open-source project that takes the readings from your CGM (Dexcom, Libre, etc.) and puts them on a private web page of your own — that's the URL this form is asking for. It's built and maintained by the diabetes community, not by Orbie.</p>
-        <p>You'll need your own Nightscout site already running before you can use it here — this page can't create one for you. Setup usually takes 15–30 minutes and free hosting options exist.</p>
-        <a href="https://nightscout.github.io/" target="_blank" rel="noopener">Official setup guide →</a>
-        <a href="https://www.nightscout.info/" target="_blank" rel="noopener">What is Nightscout? →</a>
-      </div>
-    </details>
-
-    <form id="try-form">
-      <label for="ns-url">Nightscout URL</label>
-      <input type="text" id="ns-url" placeholder="https://your-site.com" autocomplete="off" required>
-
-      <label for="ns-token">Read-only token (optional)</label>
-      <input type="text" id="ns-token" placeholder="Only if site isn't public" autocomplete="off">
-      <div class="hint">If your Nightscout requires a token, use a read-only one — Orbie only ever reads, never writes. Your link expires automatically after 30 days of no visits.</div>
-
-      <button type="submit" id="submit-btn">Generate my Orbie link</button>
-    </form>
-
-    <div class="status" id="status"></div>
-    <div class="result" id="result">
-      <a href="#" id="result-link" target="_blank" rel="noopener"></a>
-      <div class="result-note">Bookmark it — this is your own private Orbie. Save the link, it won't be shown again.</div>
+    <div class="tabs" role="tablist" aria-label="Where does your glucose data come from?">
+      <button type="button" class="tab" role="tab" id="tab-ns" aria-selected="true" aria-controls="panel-ns">Nightscout</button>
+      <button type="button" class="tab" role="tab" id="tab-libre" aria-selected="false" aria-controls="panel-libre" tabindex="-1">FreeStyle Libre</button>
     </div>
 
-    <div class="footer-note">Nothing here is medical advice. Orbie is a companion, not a monitor — keep using your usual CGM app and alarms.</div>
+    <!-- ===================== Nightscout ===================== -->
+    <section id="panel-ns" role="tabpanel" aria-labelledby="tab-ns">
+      <details class="explainer">
+        <summary>Don't know what Nightscout is or how to set it up?</summary>
+        <div class="explainer-body">
+          <p>Nightscout is a free, open-source project that takes the readings from your CGM (Dexcom, Libre, etc.) and puts them on a private web page of your own — that's the URL this form is asking for. It's built and maintained by the diabetes community, not by Orbie.</p>
+          <p>You'll need your own Nightscout site already running before you can use it here — this page can't create one for you. Setup usually takes 15–30 minutes and free hosting options exist.</p>
+          <a href="https://nightscout.github.io/" target="_blank" rel="noopener">Official setup guide →</a>
+          <a href="https://www.nightscout.info/" target="_blank" rel="noopener">What is Nightscout? →</a>
+        </div>
+      </details>
+
+      <form id="form-ns" autocomplete="off">
+        <label for="ns-url">Nightscout URL</label>
+        <input type="text" id="ns-url" placeholder="https://your-site.com" autocomplete="off" autocapitalize="none" spellcheck="false" required>
+
+        <label for="ns-token">Read-only token (optional)</label>
+        <input type="text" id="ns-token" placeholder="Only if site isn't public" autocomplete="off" autocapitalize="none" spellcheck="false">
+        <div class="hint">If your Nightscout requires a token, use a read-only one — Orbie only ever reads, never writes. Your link expires automatically after 30 days of no visits.</div>
+
+        <button type="submit" id="btn-ns">Generate my Orbie link</button>
+      </form>
+    </section>
+
+    <!-- ===================== FreeStyle Libre ===================== -->
+    <section id="panel-libre" role="tabpanel" aria-labelledby="tab-libre" hidden>
+      <details class="explainer">
+        <summary>Which login do I use? (LibreLinkUp)</summary>
+        <div class="explainer-body">
+          <p>Orbie reads FreeStyle Libre glucose through <strong>LibreLinkUp</strong>, Abbott's free app that lets family and friends follow a Libre user. You need a <strong>LibreLinkUp</strong> login — it is <strong>not</strong> the login you use in the LibreLink app or on LibreView.</p>
+          <p><strong>Already follow someone in LibreLinkUp</strong> (or yourself)? Use that email and password.</p>
+          <p><strong>Not set up yet?</strong></p>
+          <ol>
+            <li>The person wearing the sensor opens the <strong>LibreLink</strong> app, goes to the menu → <strong>Connected Apps</strong> → <strong>LibreLinkUp</strong> → <strong>Add Connection</strong>, and enters the email address to invite. (Menu names can vary a little between app versions.)</li>
+            <li>On your phone, install <strong>LibreLinkUp</strong>, sign up with that email, and accept the invitation.</li>
+            <li>Open LibreLinkUp once and check you can see the readings. If it asks you to accept updated terms, accept them there first — Orbie can't do that for you.</li>
+          </ol>
+          <p><strong>Tip:</strong> you can invite a second email address of your own just for Orbie, so you never have to hand over your main login.</p>
+        </div>
+      </details>
+
+      <div class="notice" id="libre-notice">
+        <p><strong>What happens to this login</strong></p>
+        <p>Orbie keeps your LibreLinkUp email and password <strong>encrypted</strong> on its server so it can check for new readings for you. It's used only to fetch your glucose, and you can delete it at any time from your Orbie page.</p>
+        <p>Encryption protects against a leak of the database, but the server does hold the key to sign in as you — so please use a <strong>separate follower email</strong> rather than your main login.</p>
+        <p>This uses an unofficial connection to LibreLinkUp. Orbie isn't affiliated with Abbott, and it may stop working if Abbott changes things. The weekly recap isn't available with LibreLinkUp.</p>
+        <p><a href="/privacy" target="_blank" rel="noopener">Read the full privacy policy →</a></p>
+      </div>
+
+      <form id="form-libre" autocomplete="off">
+        <label for="libre-email">LibreLinkUp email</label>
+        <input type="email" id="libre-email" placeholder="you@example.com" autocomplete="off" autocapitalize="none" spellcheck="false" required>
+
+        <label for="libre-password">LibreLinkUp password</label>
+        <input type="password" id="libre-password" placeholder="Your LibreLinkUp password" autocomplete="off" required>
+
+        <div id="libre-picker" hidden>
+          <label for="libre-patient">This account follows more than one person. Whose glucose should Orbie show?</label>
+          <select id="libre-patient"></select>
+        </div>
+
+        <div class="consent">
+          <input type="checkbox" id="libre-consent" required>
+          <label for="libre-consent">I understand how my login is stored, and I'm using a login I'm happy to store here.</label>
+        </div>
+
+        <button type="submit" id="btn-libre">Generate my Orbie link</button>
+      </form>
+    </section>
+
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+    <div class="result" id="result" hidden>
+      <a href="#" id="result-link" target="_blank" rel="noopener"></a>
+      <div class="result-note">Bookmark it — this is your own private Orbie. Save the link, it won't be shown again.</div>
+      <div class="result-note" id="result-extra" hidden></div>
+    </div>
+
+    <div class="footer-note">Nothing here is medical advice. Orbie is a companion, not a monitor — keep using your usual CGM app and alarms. · <a href="/privacy" style="color:inherit">Privacy policy</a></div>
   </div>
 
 <script>
-const form = document.getElementById('try-form');
-const submitBtn = document.getElementById('submit-btn');
-const statusEl = document.getElementById('status');
-const resultEl = document.getElementById('result');
-const resultLink = document.getElementById('result-link');
+const $ = (id) => document.getElementById(id);
+const statusEl = $('status');
+const resultEl = $('result');
 
-form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const nightscoutUrl = document.getElementById('ns-url').value.trim();
-  const nightscoutToken = document.getElementById('ns-token').value.trim();
+function setStatus(text, kind) {
+  statusEl.textContent = text;
+  statusEl.className = 'status' + (kind ? ' ' + kind : '');
+}
+function hideResult() { resultEl.hidden = true; }
 
-  statusEl.textContent = 'Checking your Nightscout site…';
-  statusEl.className = 'status';
-  resultEl.classList.remove('visible');
-  submitBtn.disabled = true;
+/* ---------- source tabs ---------- */
+const TABS = {
+  ns: { tab: $('tab-ns'), panel: $('panel-ns') },
+  libre: { tab: $('tab-libre'), panel: $('panel-libre') },
+};
+function selectTab(which, moveFocus) {
+  for (const [key, t] of Object.entries(TABS)) {
+    const on = key === which;
+    t.tab.setAttribute('aria-selected', String(on));
+    t.tab.tabIndex = on ? 0 : -1;
+    t.panel.hidden = !on;
+  }
+  if (moveFocus) TABS[which].tab.focus();
+  setStatus('', '');
+  hideResult();
+  try { history.replaceState(null, '', which === 'libre' ? '#libre' : location.pathname); } catch (e) { /* ignore */ }
+}
+for (const [key, t] of Object.entries(TABS)) {
+  t.tab.addEventListener('click', () => selectTab(key, false));
+  t.tab.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      selectTab(key === 'ns' ? 'libre' : 'ns', true);
+    }
+  });
+}
+if (location.hash === '#libre') selectTab('libre', false);
+// Following a /try#libre link while this page is already open (or editing the address) switches tabs too.
+window.addEventListener('hashchange', () => selectTab(location.hash === '#libre' ? 'libre' : 'ns', false));
 
+/* ---------- shared request ---------- */
+async function send(payload) {
   try {
     const res = await fetch('/api/create-instance', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nightscoutUrl, nightscoutToken: nightscoutToken || undefined }),
+      body: JSON.stringify(payload),
     });
-    const data = await res.json();
-
-    if (!res.ok) {
-      statusEl.textContent = data.error || 'Something went wrong — try again.';
-      statusEl.className = 'status error';
-      return;
-    }
-
-    statusEl.textContent = 'Your Orbie is ready!';
-    statusEl.className = 'status success';
-    const fullUrl = `${window.location.origin}${data.url}`;
-    resultLink.href = fullUrl;
-    resultLink.textContent = fullUrl;
-    resultEl.classList.add('visible');
-  } catch (err) {
-    statusEl.textContent = 'Could not reach the server — try again in a moment.';
-    statusEl.className = 'status error';
-  } finally {
-    submitBtn.disabled = false;
+    let data = {};
+    try { data = await res.json(); } catch (e) { /* non-JSON error page */ }
+    return { ok: res.ok, data };
+  } catch (e) {
+    return { networkError: true };
   }
+}
+
+function showResult(data, extra) {
+  setStatus('Your Orbie is ready!', 'success');
+  const fullUrl = `${window.location.origin}${data.url}`;
+  const link = $('result-link');
+  link.href = fullUrl;
+  link.textContent = fullUrl;
+  const extraEl = $('result-extra');
+  extraEl.hidden = !extra;
+  extraEl.textContent = extra || '';
+  resultEl.hidden = false;
+}
+
+/* ---------- Nightscout ---------- */
+$('form-ns').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const nightscoutUrl = $('ns-url').value.trim();
+  const nightscoutToken = $('ns-token').value.trim();
+  setStatus('Checking your Nightscout site…', '');
+  hideResult();
+  $('btn-ns').disabled = true;
+  const out = await send({ nightscoutUrl, nightscoutToken: nightscoutToken || undefined });
+  $('btn-ns').disabled = false;
+  if (out.networkError) return setStatus('Could not reach the server — try again in a moment.', 'error');
+  if (!out.ok) return setStatus(out.data.error || 'Something went wrong — try again.', 'error');
+  showResult(out.data, 'Anyone with this link can see your glucose, so keep it to yourself. You can delete it any time from the link itself.');
+});
+
+/* ---------- LibreLinkUp ---------- */
+const picker = $('libre-picker');
+const pickerSelect = $('libre-patient');
+const libreBtn = $('btn-libre');
+const LIBRE_BTN_TEXT = 'Generate my Orbie link';
+
+function resetPicker() {
+  picker.hidden = true;
+  pickerSelect.textContent = '';
+  libreBtn.textContent = LIBRE_BTN_TEXT;
+}
+// If they change the login after seeing the picker, start over.
+$('libre-email').addEventListener('input', resetPicker);
+$('libre-password').addEventListener('input', resetPicker);
+
+$('form-libre').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const payload = {
+    source: 'librelinkup',
+    email: $('libre-email').value.trim(),
+    password: $('libre-password').value,
+  };
+  if (!picker.hidden && pickerSelect.value) payload.patientId = pickerSelect.value;
+
+  setStatus('Signing in to LibreLinkUp…', '');
+  hideResult();
+  libreBtn.disabled = true;
+  const out = await send(payload);
+  libreBtn.disabled = false;
+
+  if (out.networkError) return setStatus('Could not reach the server — try again in a moment.', 'error');
+
+  if (out.ok && out.data.choosePatient) {
+    pickerSelect.textContent = '';
+    for (const p of out.data.patients) {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.label;
+      pickerSelect.appendChild(opt);
+    }
+    picker.hidden = false;
+    libreBtn.textContent = 'Use this person';
+    return setStatus('Signed in. Pick whose glucose Orbie should show, then continue.', '');
+  }
+
+  if (!out.ok) return setStatus(out.data.error || 'Something went wrong — try again.', 'error');
+
+  // Never keep the password around in the page once it's been used.
+  $('libre-password').value = '';
+  resetPicker();
+  showResult(
+    out.data,
+    'Anyone with this link can see your glucose, so keep it to yourself. To remove your saved login, open the link and tap “delete this Orbie”.'
+  );
 });
 </script>
 </body>

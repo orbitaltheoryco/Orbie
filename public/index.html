@@ -730,6 +730,8 @@
 
   <div class="recap-link" id="recap-btn">📅 see Orbie's week</div>
   <a class="recap-link" id="try-own-link" href="/try">🪐 try Orbie with your own data</a>
+  <a class="recap-link" id="delete-orbie-link" href="#" style="display:none">🗑 delete this Orbie</a>
+  <a class="recap-link" id="privacy-link" href="/privacy">🔒 privacy policy</a>
 
   <div class="recap-overlay hidden" id="recap-overlay">
     <div class="recap-card">
@@ -792,6 +794,24 @@ function apiUrl(path) {
 if (DEMO_SLUG) {
   const tryOwnLink = document.getElementById('try-own-link');
   if (tryOwnLink) tryOwnLink.style.display = 'none';
+
+  // This is someone's own Orbie — let them remove it (and, for LibreLinkUp,
+  // the login saved for them) right away instead of waiting for it to expire.
+  const deleteLink = document.getElementById('delete-orbie-link');
+  if (deleteLink) {
+    deleteLink.style.display = 'block';
+    deleteLink.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (!confirm('Delete this Orbie? This removes your link and any login Orbie has saved for you. You can set up a new one any time.')) return;
+      try {
+        const res = await fetch(apiUrl('/api/delete-instance'), { method: 'POST' });
+        if (!res.ok) throw new Error('delete failed');
+        window.location.href = '/try';
+      } catch (err) {
+        alert("Couldn't delete it right now — please try again in a moment.");
+      }
+    });
+  }
 }
 let demoForced = false;
 let hasResolvedFirstPoll = false;
@@ -858,6 +878,9 @@ async function pollOnce() {
     hasResolvedFirstPoll = true;
     currentTrend = reading.trend;
     currentValue = reading.value;
+    // LibreLinkUp only exposes ~12 hours, so there is no real weekly recap for it.
+    const recapLink = document.getElementById('recap-btn');
+    if (recapLink) recapLink.style.display = reading.source === 'librelinkup' ? 'none' : '';
     pushToBuffer(reading.value, reading.timestamp || Date.now());
     const rateInfo = computeRateOfChange();
     applyState(currentTrend, currentValue, { live: true, timestamp: reading.timestamp, rateInfo });
@@ -872,7 +895,13 @@ async function pollOnce() {
       hasResolvedFirstPoll = true;
       applyState(currentTrend, currentValue);
     }
-    setBackendStatus('Demo data — no backend found at /api/reading yet.', false);
+    if (DEMO_SLUG) {
+      // A real link that failed (expired, sign-in problem, Abbott/Nightscout down…) —
+      // show the real reason rather than a misleading "no backend" message.
+      setBackendStatus(`Showing demo data — couldn't load your readings: ${err && err.message ? err.message : 'unknown problem'}`, true);
+    } else {
+      setBackendStatus('Demo data — no backend found at /api/reading yet.', false);
+    }
     updateSimPanelVisibility();
     readingBuffer = [];
     document.getElementById('rate-alert').classList.add('hidden');
@@ -1926,7 +1955,12 @@ async function openRecap() {
     const summary = isLive ? await fetchWeeklyRecap() : demoWeeklySummary();
     renderRecap(summary);
   } catch (err) {
-    renderRecap(demoWeeklySummary());
+    if (isLive) {
+      // Real data is connected but the recap failed — don't invent numbers.
+      recapBody.textContent = "Couldn't load this week's recap right now. Please try again in a bit.";
+    } else {
+      renderRecap(demoWeeklySummary());
+    }
   }
 }
 function closeRecap() {

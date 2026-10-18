@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Orbie — Privacy Policy</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- BEFORE PUBLISHING: replace every highlighted [BRACKETED] item (search for class="todo"),
+     then delete this comment. Not legal advice — consider having it reviewed. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #12171B; --panel: #1B2228; --panel-hi: #232C33;
+    --text: #EDEAE3; --text-dim: #9AA5AC; --glow: #F2A65A;
+    --inrange: #8FBF7F; --border: #2A333A;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body {
+    margin: 0; padding: 24px; min-height: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: 'Quicksand', sans-serif; line-height: 1.65; font-size: 0.98rem;
+  }
+  main {
+    max-width: 760px; margin: 0 auto;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 20px; padding: 32px 28px 36px;
+  }
+  .back { display: inline-block; margin-bottom: 18px; color: var(--inrange); font-size: 0.85rem; text-decoration: none; }
+  .back:hover { text-decoration: underline; }
+  h1 { font-size: 1.7rem; margin: 0 0 4px; }
+  .updated { color: var(--text-dim); font-size: 0.85rem; margin: 0 0 24px; }
+  h2 { font-size: 1.12rem; margin: 30px 0 8px; padding-top: 6px; border-top: 1px solid var(--border); }
+  h3 { font-size: 0.98rem; margin: 18px 0 4px; color: var(--text); }
+  p { margin: 0 0 12px; color: #D4D2CB; }
+  ul { margin: 0 0 12px; padding-left: 22px; color: #D4D2CB; }
+  li { margin-bottom: 6px; }
+  strong { color: var(--text); }
+  a { color: var(--inrange); }
+  .summary {
+    background: var(--panel-hi); border: 1px solid var(--border); border-left: 4px solid var(--inrange);
+    border-radius: 12px; padding: 16px 18px 6px; margin: 0 0 8px;
+  }
+  .summary h2 { border: none; margin: 0 0 8px; padding: 0; font-size: 1.05rem; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 14px; font-size: 0.88rem; }
+  th, td { text-align: left; vertical-align: top; padding: 9px 10px; border-bottom: 1px solid var(--border); color: #D4D2CB; }
+  th { color: var(--text); font-weight: 700; background: var(--panel-hi); }
+  .scroll { overflow-x: auto; }
+  code { font-family: 'JetBrains Mono', monospace; font-size: 0.82em; background: var(--panel-hi); padding: 1px 5px; border-radius: 4px; }
+  /* items YOU must fill in — impossible to miss */
+  mark.todo { background: var(--glow); color: #12171B; padding: 0 4px; border-radius: 4px; font-weight: 700; }
+  @media (max-width: 520px) { body { padding: 12px; } main { padding: 22px 16px 28px; border-radius: 16px; } h1 { font-size: 1.4rem; } }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="/">← Back to Orbie</a>
+  <h1>Orbie Privacy Policy</h1>
+  <p class="updated">Last updated: October 17, 2026</p>
+
+  <p>Orbie is a small pet whose mood follows glucose readings. It is run by <mark class="todo"><div Orbitaltheory.co=""></div></mark> (“we”, “us”). You can reach us at <mark class="todo"><div Orbitaltheory.co@gmail.com=""></div></mark>. This page explains what information Orbie handles, why, who else sees it, and how you can delete it.</p>
+
+  <div class="summary">
+    <h2>The short version</h2>
+    <ul>
+      <li>To show <em>your</em> glucose, Orbie needs a way to read it: either your <strong>Nightscout address</strong> or your <strong>LibreLinkUp login</strong>. You can also try Orbie with demo data and give us nothing.</li>
+      <li>We keep only what's needed for that. LibreLinkUp passwords are <strong>encrypted</strong>. Every link <strong>deletes itself</strong> 30 days after you last open it, and you can delete yours instantly yourself.</li>
+      <li>We don't keep a history of your readings, don't show ads, don't sell or share your information for marketing, and don't use analytics or tracking cookies.</li>
+      <li>Orbie is <strong>not a medical device</strong> and is not for treatment decisions.</li>
+    </ul>
+  </div>
+
+  <h2>1. What this policy covers</h2>
+  <p>This policy covers the Orbie website and web app (including the pages where you create your own link and the minigames) and the Orbie watch face for Garmin watches. There are no Orbie user accounts.</p>
+
+  <h2>2. What we handle, and why</h2>
+
+  <h3>If you only use the demo</h3>
+  <p>Nothing about you is stored on our servers. Your browser keeps your minigame high scores and your sound on/off choice (see “In your browser” below).</p>
+
+  <h3>If you create a link with Nightscout</h3>
+  <ul>
+    <li>Your Nightscout address and, if you give one, your read-only access token.</li>
+    <li>A random link ID (this is what the private link contains) and the time it was created.</li>
+  </ul>
+  <p><strong>Why:</strong> so that when you open your link, Orbie can fetch your latest readings from <em>your</em> Nightscout site. Orbie only reads; it never writes to your Nightscout.</p>
+
+  <h3>If you create a link with LibreLinkUp</h3>
+  <ul>
+    <li>Your LibreLinkUp <strong>email and password</strong>, stored <strong>encrypted</strong> (see “Security”), along with the Abbott region your account lives in.</li>
+    <li>An internal ID for the person you follow (not their name — names are shown only during sign-up so you can pick the right person, and are not saved).</li>
+    <li>A temporary login token from Abbott, stored encrypted for up to about an hour so we don't sign in on every refresh.</li>
+    <li>A random link ID and the creation time.</li>
+  </ul>
+  <p><strong>Why:</strong> so Orbie can sign in to LibreLinkUp on your behalf and fetch the readings you've chosen to share with that follower account. We use your login for nothing else. Orbie is not affiliated with Abbott and uses an unofficial connection that Abbott can change or block at any time.</p>
+
+  <h3>Glucose readings</h3>
+  <p>Readings are fetched live when your page loads or refreshes and sent to your browser. We do <strong>not</strong> build or keep a history of them. Short-lived copies exist only to keep things fast: up to about 45 seconds in our database for LibreLinkUp, and for a few minutes in our hosting provider's cache (up to about 40 minutes for the Nightscout weekly summary). The last few hours of readings your page shows are held in your browser's memory only.</p>
+
+  <h3>Technical information</h3>
+  <ul>
+    <li><strong>IP address.</strong> Our hosting provider records ordinary request information (such as IP address, the page or API address requested, and browser type) in its server logs. Because your private link is part of the address, these logs can contain your link ID. We also keep IP addresses in short-lived counters, for up to 24 hours, to limit abuse (for example, to stop someone repeatedly guessing LibreLinkUp passwords).</li>
+    <li><strong>A scrambled form of your email.</strong> For LibreLinkUp sign-ups we keep a one-way hash of the email address (not the address itself) for up to one hour, for the same abuse limit.</li>
+  </ul>
+
+  <h3>In your browser</h3>
+  <p>Orbie stores a few small items in your browser's local storage: your best scores in each minigame and whether music is muted. These stay on your device and are not sent to us. Orbie sets <strong>no cookies</strong> and uses <strong>no analytics or advertising trackers</strong>. The pages do load their fonts from Google Fonts, so Google receives your IP address and browser details when a page loads (see Google's privacy policy).</p>
+
+  <h2>3. How we use it</h2>
+  <p>Only to run Orbie: to fetch and show your readings, keep your link working, protect the service and Abbott's service from abuse, fix problems, and answer your messages. We do not sell your information, use it for advertising or profiling, or share it for anyone's marketing.</p>
+
+  <h2>4. Who else is involved</h2>
+  <p>We use a few providers to run Orbie. They handle information only to provide their service to us:</p>
+  <ul>
+    <li><strong>Vercel</strong> — hosts the website and runs the code. Their logs and cache are described above.</li>
+    <li><strong>Upstash</strong> — the database that stores links (and the encrypted LibreLinkUp login).</li>
+    <li><strong>Abbott (LibreView / LibreLinkUp)</strong> — if you use LibreLinkUp, we sign in to Abbott with your login and read the data they share with that account. Abbott's own terms and privacy notice apply to that.</li>
+    <li><strong>Your Nightscout host</strong> — if you use Nightscout, we request readings from the site you gave us.</li>
+    <li><strong>Google Fonts</strong> — your browser fetches the fonts the pages use.</li>
+    <li><strong>Garmin</strong> — if you use the watch face, your settings sync through Garmin's apps (see section 11).</li>
+  </ul>
+  <p>These providers may process information on servers in the United States and other countries. We may also disclose information if the law requires it.</p>
+
+  <h2>5. How long we keep it</h2>
+  <div class="scroll"><table>
+    <tr><th>What</th><th>How long</th></tr>
+    <tr><td>Your link, and any saved Nightscout address/token or LibreLinkUp login</td><td>Until 30 days after you last open the link, or until you delete it — whichever comes first</td></tr>
+    <tr><td>Abbott login token (encrypted)</td><td>Up to about 1 hour</td></tr>
+    <tr><td>Latest-reading copy in our database</td><td>About 45 seconds</td></tr>
+    <tr><td>“Slow down” markers after a lockout or rejected login</td><td>10–30 minutes</td></tr>
+    <tr><td>Abuse-limit counters (IP address; hashed email)</td><td>Up to 24 hours (hashed email: 1 hour)</td></tr>
+    <tr><td>Hosting provider logs and cache</td><td>Set by Vercel; short-lived, and not something we control in detail</td></tr>
+    <tr><td>Scores and sound choice in your browser</td><td>Until you clear your browser data</td></tr>
+  </table></div>
+
+  <h2>6. Deleting your information</h2>
+  <p>Open your private Orbie link and tap <strong>“delete this Orbie”</strong>. That removes the link and everything stored for it — including a saved LibreLinkUp login — immediately.</p>
+  <p>Orbie has no accounts, so we find your information using your link; we can't look you up by name or email. If you've lost your link, write to <mark class="todo"><div Orbitaltheory.co@gmail.com=""></div></mark> and we'll do what we can, but the surest route is that it deletes itself 30 days after you last open it. If you want to be extra safe with LibreLinkUp, you can also remove Orbie's follower email from the sharing list in the LibreLink app, or change that LibreLinkUp password.</p>
+
+  <h2>7. Security</h2>
+  <ul>
+    <li>LibreLinkUp passwords and login tokens are encrypted before being stored (AES-256-GCM). The encryption key is kept separately from the database, so a leak of the database alone would not reveal passwords. Each encrypted item is also bound to its own link so it can't be moved to another.</li>
+    <li>Passwords are never written to our logs and never sent back to your browser.</li>
+    <li>Sign-in attempts are rate-limited so the form can't be used to guess passwords.</li>
+    <li>Please be aware: the server necessarily holds the key it needs to sign in as you, so encryption protects against database leaks, not against us or a compromise of the server itself. That's why we recommend a <strong>separate follower email</strong> rather than your main LibreLinkUp login.</li>
+    <li><strong>Keep your link private.</strong> Anyone who has it can see your glucose. The links are long random values, but they are still only as private as you keep them.</li>
+  </ul>
+  <p>No system is perfectly secure, and we can't promise absolute security.</p>
+
+  <h2>8. Your choices and rights</h2>
+  <p>Giving us any of this is optional — you can use the demo with nothing. You can delete your link whenever you like. Depending on where you live (for example the EEA, the UK, or California), you may also have rights to ask what we hold about you, to have it corrected or deleted, to object to or restrict how it's used, or to receive a copy. Write to <mark class="todo"><div Orbitaltheory.co@gmail.com=""></div></mark> and include your link so we can find your information; we'll respond within the time the law requires. You can also complain to your local data protection authority.</p>
+  <p>Where the law asks for a legal basis: we handle your information to provide the service you asked for, and, for LibreLinkUp, with your consent when you tick the box before signing in. You can withdraw that consent at any time by deleting your link.</p>
+
+  <h2>9. Health information</h2>
+  <p>Glucose readings are health information. We handle them only to show them to you, as described above, and never for advertising, profiling, or sale.</p>
+
+  <h2>10. Children</h2>
+  <p>Orbie is not directed at children and we don't knowingly collect information from them directly. If you're a parent or guardian following a child's readings, you are the one signing in; please only do so for someone you're responsible for.</p>
+
+  <h2>11. The Garmin watch face</h2>
+  <p>The Orbie watch face sends <strong>nothing to us</strong>. Using your phone's connection through the Garmin Connect app, it fetches your latest readings straight from the Nightscout address you enter in its settings. That address (and token, if you use one) is stored on your watch and synced through Garmin's apps, which are covered by Garmin's own privacy policy. The watch face also keeps the last few hours of readings on the watch itself to draw its graph. It does not use the LibreLinkUp login or any Orbie server, and has no analytics.</p>
+
+  <h2>12. Not medical advice</h2>
+  <p>Orbie is a companion, not a monitor. It can be wrong, delayed, or stop working (including if Abbott changes how LibreLinkUp works). Don't use it to make treatment decisions, and keep using your usual CGM app, alarms, and care team.</p>
+
+  <h2>13. Changes to this policy</h2>
+  <p>If we change how Orbie handles information, we'll update this page and the date at the top, and for significant changes we'll say so on the page where you create your link.</p>
+
+  <h2>14. Contact</h2>
+  <p><mark class="todo">[Orbitaltheory.co]</mark><br>
+  Email: <mark class="todo"><div orbitaltheory.co@gmail.com=""></div></mark><br>
+  <mark class="todo"><div Spain=""></div></mark></p>
+</main>
+</body>
+</html>
