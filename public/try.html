@@ -99,6 +99,8 @@
   input::placeholder { font-size: 0.78rem; color: #6B747B; }
   .hint { font-size: 0.75rem; color: var(--text-dim); margin: -10px 0 16px; line-height: 1.5; }
 
+  .copy { width: auto; margin-top: 10px; padding: 8px 14px; border-radius: 8px; background: var(--panel); color: var(--text); border: 1px solid var(--border); font-family: 'Quicksand', sans-serif; font-weight: 700; font-size: 0.8rem; cursor: pointer; }
+  .notice.warn { background: rgba(224,138,92,0.10); border-color: rgba(224,138,92,0.5); }
   .consent { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 16px; font-size: 0.8rem; line-height: 1.45; color: var(--text); }
   .consent input { width: 18px; height: 18px; margin: 2px 0 0; flex: none; accent-color: var(--inrange); }
   .consent label { margin: 0; color: var(--text); font-size: 0.8rem; }
@@ -130,6 +132,7 @@
     <div class="tabs" role="tablist" aria-label="Where does your glucose data come from?">
       <button type="button" class="tab" role="tab" id="tab-ns" aria-selected="true" aria-controls="panel-ns">Nightscout</button>
       <button type="button" class="tab" role="tab" id="tab-libre" aria-selected="false" aria-controls="panel-libre" tabindex="-1">FreeStyle Libre</button>
+      <button type="button" class="tab" role="tab" id="tab-dexcom" aria-selected="false" aria-controls="panel-dexcom" tabindex="-1">Dexcom</button>
     </div>
 
     <!-- ===================== Nightscout ===================== -->
@@ -202,11 +205,56 @@
       </form>
     </section>
 
+    <!-- ===================== Dexcom ===================== -->
+    <section id="panel-dexcom" role="tabpanel" aria-labelledby="tab-dexcom" hidden>
+      <details class="explainer">
+        <summary>Which login do I use? (Dexcom)</summary>
+        <div class="explainer-body">
+          <p>Orbie reads Dexcom (G6, G7, ONE and similar) through <strong>Dexcom Share</strong>, the feature that lets other people follow your readings.</p>
+          <p>Use the Dexcom account of the person <strong>wearing the sensor</strong>: the username, email or phone number and password you sign in with in the Dexcom G6/G7 app. A Dexcom <strong>Follow</strong> login will not work.</p>
+          <p><strong>Share must be on.</strong> In the Dexcom app, open Share and add at least one follower (it can be you or anyone you trust). Until someone is connected, Dexcom doesn't make readings available.</p>
+          <p><strong>Region:</strong> pick where your Dexcom account was created: United States, outside the US, or Japan. The wrong region looks like a wrong password.</p>
+        </div>
+      </details>
+
+      <div class="notice warn" id="dexcom-notice">
+        <p><strong>Read this first</strong></p>
+        <p>Unlike LibreLinkUp, Dexcom has no separate follower login for this. Orbie needs your <strong>main Dexcom account password</strong>. We store it <strong>encrypted</strong> so Orbie can keep checking for new readings, use it for nothing else, and you can delete it at any time from your Orbie page.</p>
+        <p>Encryption protects against a leak of the database, but the server does hold the key to sign in as you. If that isn't okay with you, use <strong>Nightscout</strong> instead: there, your own Nightscout site holds the Dexcom login, not Orbie.</p>
+        <p>This is an unofficial connection. Orbie isn't affiliated with Dexcom and it may stop working if Dexcom changes things. The weekly recap isn't available with Dexcom.</p>
+        <p><a href="/privacy" target="_blank" rel="noopener">Read the full privacy policy →</a></p>
+      </div>
+
+      <form id="form-dexcom" autocomplete="off">
+        <label for="dex-username">Dexcom username, email or phone number</label>
+        <input type="text" id="dex-username" placeholder="Same as in the Dexcom app" autocomplete="off" autocapitalize="none" spellcheck="false" required>
+
+        <label for="dex-password">Dexcom password</label>
+        <input type="password" id="dex-password" placeholder="Your Dexcom password" autocomplete="off" required>
+
+        <label for="dex-region">Region</label>
+        <select id="dex-region">
+          <option value="us">United States</option>
+          <option value="ous">Outside the US</option>
+          <option value="jp">Japan</option>
+        </select>
+
+        <div class="consent">
+          <input type="checkbox" id="dex-consent" required>
+          <label for="dex-consent">I understand that Orbie stores my main Dexcom login, and I'm happy for it to.</label>
+        </div>
+
+        <button type="submit" id="btn-dexcom">Generate my Orbie link</button>
+      </form>
+    </section>
+
     <div class="status" id="status" role="status" aria-live="polite"></div>
     <div class="result" id="result" hidden>
       <a href="#" id="result-link" target="_blank" rel="noopener"></a>
       <div class="result-note">Bookmark it — this is your own private Orbie. Save the link, it won't be shown again.</div>
       <div class="result-note" id="result-extra" hidden></div>
+      <button type="button" class="copy" id="copy-link">Copy link</button>
+      <div class="result-note">Using a Garmin watch? Paste this link into Orbie's settings on your phone (Garmin Connect app, under “Orbie link”) and the watch face will show these readings too.</div>
     </div>
 
     <div class="footer-note">Nothing here is medical advice. Orbie is a companion, not a monitor — keep using your usual CGM app and alarms. · <a href="/privacy" style="color:inherit">Privacy policy</a></div>
@@ -227,7 +275,9 @@ function hideResult() { resultEl.hidden = true; }
 const TABS = {
   ns: { tab: $('tab-ns'), panel: $('panel-ns') },
   libre: { tab: $('tab-libre'), panel: $('panel-libre') },
+  dexcom: { tab: $('tab-dexcom'), panel: $('panel-dexcom') },
 };
+const ORDER = ['ns', 'libre', 'dexcom'];
 function selectTab(which, moveFocus) {
   for (const [key, t] of Object.entries(TABS)) {
     const on = key === which;
@@ -238,20 +288,21 @@ function selectTab(which, moveFocus) {
   if (moveFocus) TABS[which].tab.focus();
   setStatus('', '');
   hideResult();
-  try { history.replaceState(null, '', which === 'libre' ? '#libre' : location.pathname); } catch (e) { /* ignore */ }
+  try { history.replaceState(null, '', which === 'ns' ? location.pathname : '#' + which); } catch (e) { /* ignore */ }
 }
 for (const [key, t] of Object.entries(TABS)) {
   t.tab.addEventListener('click', () => selectTab(key, false));
   t.tab.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
       e.preventDefault();
-      selectTab(key === 'ns' ? 'libre' : 'ns', true);
+      const step = e.key === 'ArrowRight' ? 1 : -1;
+      selectTab(ORDER[(ORDER.indexOf(key) + step + ORDER.length) % ORDER.length], true);
     }
   });
 }
-if (location.hash === '#libre') selectTab('libre', false);
+if (TABS[location.hash.slice(1)]) selectTab(location.hash.slice(1), false);
 // Following a /try#libre link while this page is already open (or editing the address) switches tabs too.
-window.addEventListener('hashchange', () => selectTab(location.hash === '#libre' ? 'libre' : 'ns', false));
+window.addEventListener('hashchange', () => selectTab(TABS[location.hash.slice(1)] ? location.hash.slice(1) : 'ns', false));
 
 /* ---------- shared request ---------- */
 async function send(payload) {
@@ -269,12 +320,14 @@ async function send(payload) {
   }
 }
 
+let lastLink = '';
 function showResult(data, extra) {
   setStatus('Your Orbie is ready!', 'success');
   const fullUrl = `${window.location.origin}${data.url}`;
   const link = $('result-link');
   link.href = fullUrl;
   link.textContent = fullUrl;
+  lastLink = fullUrl;
   const extraEl = $('result-extra');
   extraEl.hidden = !extra;
   extraEl.textContent = extra || '';
@@ -350,6 +403,32 @@ $('form-libre').addEventListener('submit', async (e) => {
     out.data,
     'Anyone with this link can see your glucose, so keep it to yourself. To remove your saved login, open the link and tap “delete this Orbie”.'
   );
+});
+
+/* ---------- Dexcom ---------- */
+const dexBtn = $('btn-dexcom');
+$('form-dexcom').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  setStatus('Signing in to Dexcom…', '');
+  hideResult();
+  dexBtn.disabled = true;
+  const out = await send({
+    source: 'dexcom',
+    username: $('dex-username').value.trim(),
+    password: $('dex-password').value,
+    region: $('dex-region').value,
+  });
+  dexBtn.disabled = false;
+  if (out.networkError) return setStatus('Could not reach the server — try again in a moment.', 'error');
+  if (!out.ok) return setStatus(out.data.error || 'Something went wrong — try again.', 'error');
+  $('dex-password').value = '';   // never keep the password around once it's been used
+  showResult(out.data, 'Anyone with this link can see your glucose, so keep it to yourself. To remove your saved login, open the link and tap “delete this Orbie”.');
+});
+
+$('copy-link').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(lastLink); $('copy-link').textContent = 'Copied!'; }
+  catch (e) { $('copy-link').textContent = 'Select the link above to copy'; }
+  setTimeout(() => { $('copy-link').textContent = 'Copy link'; }, 2000);
 });
 </script>
 </body>

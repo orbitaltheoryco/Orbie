@@ -9,6 +9,7 @@
 const { fetchFromNightscout } = require('../lib/nightscout');
 const { fetchFromLibreLinkUp } = require('../lib/librelinkup');
 const { getLibreSnapshot } = require('../lib/libreSession');
+const { getDexcomSnapshot } = require('../lib/dexcomSession');
 const { resolveSource } = require('../lib/resolveSource');
 const { sendError, exposeUpstream } = require('../lib/errors');
 
@@ -25,6 +26,8 @@ module.exports = async function handler(req, res) {
       } else {
         reading = await exposeUpstream(() => fetchFromLibreLinkUp(cfg.libreEmail, cfg.librePassword, cfg.libreRegion));
       }
+    } else if (cfg.source === 'dexcom') {
+      reading = (await getDexcomSnapshot(cfg.slug, cfg.instance)).reading;
     } else {
       return res.status(400).json({ error: `Unknown DATA_SOURCE "${cfg.source}". Use "nightscout" or "librelinkup".` });
     }

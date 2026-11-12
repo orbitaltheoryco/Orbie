@@ -13,6 +13,10 @@ module.exports = async function handler(req, res) {
   try {
     const cfg = await resolveSource(req);
 
+    if (cfg.source === 'dexcom') {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(501).json({ error: "The weekly recap isn't available with Dexcom — it only shares about the last day.", code: 'weekly_unavailable' });
+    }
     if (cfg.source === 'librelinkup') {
       res.setHeader('Cache-Control', 'no-store');
       return res.status(501).json({ error: "The weekly recap isn't available with LibreLinkUp — it only shares about the last 12 hours.", code: 'weekly_unavailable' });

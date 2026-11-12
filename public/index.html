@@ -880,7 +880,7 @@ async function pollOnce() {
     currentValue = reading.value;
     // LibreLinkUp only exposes ~12 hours, so there is no real weekly recap for it.
     const recapLink = document.getElementById('recap-btn');
-    if (recapLink) recapLink.style.display = reading.source === 'librelinkup' ? 'none' : '';
+    if (recapLink) recapLink.style.display = (reading.source === 'librelinkup' || reading.source === 'dexcom') ? 'none' : '';
     pushToBuffer(reading.value, reading.timestamp || Date.now());
     const rateInfo = computeRateOfChange();
     applyState(currentTrend, currentValue, { live: true, timestamp: reading.timestamp, rateInfo });

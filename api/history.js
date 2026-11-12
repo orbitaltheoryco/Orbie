@@ -8,6 +8,7 @@
 
 const { fetchHistoryFromNightscout } = require('../lib/nightscout');
 const { getLibreSnapshot } = require('../lib/libreSession');
+const { getDexcomSnapshot } = require('../lib/dexcomSession');
 const { resolveSource } = require('../lib/resolveSource');
 const { sendError, exposeUpstream } = require('../lib/errors');
 
@@ -19,6 +20,12 @@ module.exports = async function handler(req, res) {
       const snap = await getLibreSnapshot(cfg.slug, cfg.instance);
       res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=60');
       return res.status(200).json({ values: snap.history, source: 'librelinkup' });
+    }
+
+    if (cfg.source === 'dexcom') {
+      const snap = await getDexcomSnapshot(cfg.slug, cfg.instance);
+      res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=60');
+      return res.status(200).json({ values: snap.history, source: 'dexcom' });
     }
 
     if (cfg.source !== 'nightscout') {

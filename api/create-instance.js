@@ -20,6 +20,8 @@ const { hit, clientIp, emailKey } = require('../lib/ratelimit');
 const { encryptJson, isConfigured } = require('../lib/crypto');
 const llu = require('../lib/librelinkup');
 const { seedSession, credsContext } = require('../lib/libreSession');
+const dex = require('../lib/dexcom');
+const { seedDexcomSession, credsContext: dexCredsContext } = require('../lib/dexcomSession');
 const { sendError } = require('../lib/errors');
 
 // An error whose message is safe to show the visitor.
@@ -166,6 +168,41 @@ async function createLibre(res, body, ip) {
   res.status(200).json({ slug, url: `/u/${slug}`, source: 'librelinkup' });
 }
 
+// ---------------- Dexcom ----------------
+// Needs the account of the person WEARING the sensor (Dexcom has no separate
+// follower login for this), so the same protections as LibreLinkUp apply —
+// plus an extra-clear warning on the page.
+
+async function createDexcom(res, body, ip) {
+  if (!isConfigured()) {
+    throw userError(503, "Dexcom sign-in isn't switched on for this site yet.", 'not_configured');
+  }
+  const username = typeof body.username === 'string' ? body.username.trim() : '';
+  const password = typeof body.password === 'string' ? body.password : '';
+  const region = ['us', 'ous', 'jp'].includes(body.region) ? body.region : null;
+  if (!username || username.length > 100) throw userError(400, 'Enter your Dexcom username, email or phone number.');
+  if (!password || password.length > 200) throw userError(400, 'Enter your Dexcom password.');
+  if (!region) throw userError(400, 'Choose your Dexcom region.');
+
+  const okIp = await hit(`rl:dex:ip:${ip}`, 8, 3600);
+  const okDay = await hit(`rl:dex:ipday:${ip}`, 20, 86400);
+  const okUser = await hit(`rl:dex:user:${emailKey(username)}`, 5, 3600);
+  if (!okIp || !okDay || !okUser) {
+    throw userError(429, 'Too many sign-in attempts. Please wait a while before trying again.', 'too_many_attempts');
+  }
+
+  const session = await dex.login(username, password, region);
+  const snapshot = await dex.fetchReadings(session); // proves Share is on and data flows
+
+  const slug = await freshSlug();
+  await createInstance(slug, {
+    source: 'dexcom',
+    creds: encryptJson({ username, password, region }, dexCredsContext(slug)),
+  });
+  await seedDexcomSession(slug, session, snapshot);
+  res.status(200).json({ slug, url: `/u/${slug}`, source: 'dexcom' });
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -175,6 +212,7 @@ module.exports = async function handler(req, res) {
     const ip = clientIp(req);
     const body = req.body && typeof req.body === 'object' ? req.body : {};
     if (body.source === 'librelinkup') return await createLibre(res, body, ip);
+    if (body.source === 'dexcom') return await createDexcom(res, body, ip);
     return await createNightscout(res, body, ip);
   } catch (err) {
     sendError(res, err);
