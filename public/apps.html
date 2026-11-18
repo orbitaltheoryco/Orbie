@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Orbie — Get Orbie everywhere</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #12171B; --panel: #1B2228; --panel-hi: #232C33;
+    --text: #EDEAE3; --text-dim: #9AA5AC; --glow: #F2A65A;
+    --inrange: #8FBF7F; --border: #2A333A;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body {
+    margin: 0; padding: 24px; min-height: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: 'Quicksand', sans-serif; line-height: 1.65; font-size: 0.98rem;
+  }
+  main {
+    max-width: 760px; margin: 0 auto;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 20px; padding: 32px 28px 36px;
+  }
+  .back { display: inline-block; margin-bottom: 18px; color: var(--inrange); font-size: 0.85rem; text-decoration: none; }
+  .back:hover { text-decoration: underline; }
+  h1 { font-size: 1.7rem; margin: 0 0 4px; }
+  .updated { color: var(--text-dim); font-size: 0.85rem; margin: 0 0 24px; }
+  h2 { font-size: 1.12rem; margin: 30px 0 8px; padding-top: 6px; border-top: 1px solid var(--border); }
+  h3 { font-size: 0.98rem; margin: 18px 0 4px; color: var(--text); }
+  p { margin: 0 0 12px; color: #D4D2CB; }
+  ul { margin: 0 0 12px; padding-left: 22px; color: #D4D2CB; }
+  li { margin-bottom: 6px; }
+  strong { color: var(--text); }
+  a { color: var(--inrange); }
+  .summary {
+    background: var(--panel-hi); border: 1px solid var(--border); border-left: 4px solid var(--inrange);
+    border-radius: 12px; padding: 16px 18px 6px; margin: 0 0 8px;
+  }
+  .summary h2 { border: none; margin: 0 0 8px; padding: 0; font-size: 1.05rem; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 14px; font-size: 0.88rem; }
+  th, td { text-align: left; vertical-align: top; padding: 9px 10px; border-bottom: 1px solid var(--border); color: #D4D2CB; }
+  th { color: var(--text); font-weight: 700; background: var(--panel-hi); }
+  .scroll { overflow-x: auto; }
+  code { font-family: 'JetBrains Mono', monospace; font-size: 0.82em; background: var(--panel-hi); padding: 1px 5px; border-radius: 4px; }
+  /* items YOU must fill in — impossible to miss */
+  mark.todo { background: var(--glow); color: #12171B; padding: 0 4px; border-radius: 4px; font-weight: 700; }
+  @media (max-width: 520px) { body { padding: 12px; } main { padding: 22px 16px 28px; border-radius: 16px; } h1 { font-size: 1.4rem; } }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin: 14px 0 6px; }
+  .card { background: var(--panel-hi); border: 1px solid var(--border); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+  .card h3 { margin: 0; font-size: 1rem; }
+  .card p { margin: 0; font-size: 0.85rem; color: var(--text-dim); }
+  .badge { align-self: flex-start; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: rgba(143,191,127,0.18); color: var(--inrange); }
+  .badge.soon { background: rgba(154,165,172,0.16); color: var(--text-dim); }
+  .btn { margin-top: auto; display: inline-block; text-align: center; padding: 10px 12px; border-radius: 10px; font-weight: 700; font-size: 0.88rem; text-decoration: none; background: var(--inrange); color: #10251a; }
+  .btn[aria-disabled="true"] { background: var(--panel); color: var(--text-dim); border: 1px solid var(--border); cursor: default; pointer-events: none; }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="/">← Back to Orbie</a>
+  <h1>Orbie everywhere</h1>
+  <p class="updated">Where to get Orbie, and how each version works.</p>
+
+  <h2 style="border:none;margin-top:6px">Get Orbie</h2>
+  <div class="cards">
+    <div class="card"><h3>Garmin watch face</h3><span class="badge">Available</span><p>Orbie on your Garmin watch, for Nightscout, FreeStyle Libre and Dexcom.</p><a class="btn" id="get-garmin" href="https://apps.garmin.com/apps/e3000093-ee16-4209-a2d9-80307ae38cc6" target="_blank" rel="noopener">Get it on Garmin Connect IQ</a></div>
+    <div class="card"><h3>Website</h3><span class="badge">Available</span><p>Make your own private Orbie link in a browser, or try the demo and the minigames.</p><a class="btn" id="get-web" href="/try">Create my Orbie</a></div>
+    <div class="card"><h3>Android</h3><span class="badge soon">Coming soon</span><p>The Orbie app for Android phones, with a home-screen widget and a status-bar notification.</p><a class="btn" id="get-android" href="#" aria-disabled="true">Google Play — coming soon</a></div>
+    <div class="card"><h3>Wear OS</h3><span class="badge soon">Coming soon</span><p>A watch app and watch face for Wear OS, shown with the Android app.</p><a class="btn" id="get-wear" href="#" aria-disabled="true">Coming soon</a></div>
+    <div class="card"><h3>iPhone</h3><span class="badge soon">Coming soon</span><p>The Orbie app for iPhone.</p><a class="btn" id="get-ios" href="#" aria-disabled="true">App Store — coming soon</a></div>
+    <div class="card"><h3>Apple Watch</h3><span class="badge soon">Coming soon</span><p>The Orbie watch app, which comes with the iPhone app.</p><a class="btn" id="get-applewatch" href="#" aria-disabled="true">Coming soon</a></div>
+  </div>
+
+  <h2>How each version works</h2>
+  <p>The versions are built differently, so they don't all behave the same. The biggest difference is where your login goes.</p>
+  <div class="scroll"><table>
+    <tr><th></th><th>Website</th><th>Garmin</th><th>Android + Wear OS</th><th>iPhone + Apple Watch</th></tr>
+    <tr><td>Reads glucose from</td><td>Nightscout, LibreLinkUp, Dexcom</td><td>Nightscout directly, or Nightscout, LibreLinkUp and Dexcom through an Orbie link</td><td>Nightscout, LibreLinkUp, Dexcom, or demo</td><td>Nightscout, LibreLinkUp, Dexcom, or demo</td></tr>
+    <tr><td>Your login is stored</td><td>On our server, encrypted</td><td>In Garmin's settings on your phone and watch (address or link)</td><td>On your phone, encrypted (Wear OS holds none)</td><td>In the iPhone Keychain, copied to the Apple Watch</td></tr>
+    <tr><td>Our server sees your readings</td><td>Yes</td><td>Only in Orbie link mode</td><td>No</td><td>No</td></tr>
+    <tr><td>Units</td><td>mg/dL</td><td>mg/dL or mmol/L, with your own range limits</td><td>mg/dL or mmol/L</td><td>mg/dL or mmol/L</td></tr>
+    <tr><td>Minigames</td><td>Yes</td><td>No</td><td>Yes (phone app)</td><td>Yes (iPhone app)</td></tr>
+    <tr><td>Extras</td><td>Weekly recap (Nightscout only)</td><td>4-hour graph on touch and hold, wrist-raise greeting, always-on view</td><td>Home-screen widget, optional status-bar notification, optional watch sync</td><td>Watch app that fetches by itself</td></tr>
+    <tr><td>Languages</td><td>English</td><td>English</td><td>English and Spanish</td><td>English and Spanish</td></tr>
+  </table></div>
+  <p>The LibreLinkUp and Dexcom connections are unofficial and can change without notice. Orbie is not affiliated with Abbott, Dexcom, Garmin, Google, Apple or the Nightscout project, and is not a medical device. Details of what each version stores are in the <a href="/privacy">privacy policy</a>.</p>
+</main>
+</body>
+</html>

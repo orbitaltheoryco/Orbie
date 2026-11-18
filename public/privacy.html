@@ -55,24 +55,35 @@
 <main>
   <a class="back" href="/">← Back to Orbie</a>
   <h1>Orbie Privacy Policy</h1>
-  <p class="updated">Last updated: November 9, 2026</p>
+  <p class="updated">Last updated: <mark class="todo">11/18/2026</mark></p>
 
-  <p>Orbie is a small pet whose mood follows glucose readings. It is run by Orbitaltheory.co (“we”, “us”). You can reach us at Orbitaltheory.co@gmail.com. This page explains what information Orbie handles, why, who else sees it, and how you can delete it.</p>
+  <p>Orbie is a small pet whose mood follows glucose readings. It is run by Orbitaltheory.co (“we”, “us”). You can reach us at Orbitaltheory.co@gmail.com. Orbie comes in several forms: a website, a Garmin watch face, apps for Android and Wear OS, and apps for iPhone and Apple Watch. They do not all handle information the same way, so this page explains each one. For what each version can do, see <a href="/apps">Orbie everywhere</a>.</p>
 
   <div class="summary">
     <h2>The short version</h2>
     <ul>
-      <li>To show <em>your</em> glucose, Orbie needs a way to read it: your <strong>Nightscout address</strong>, your <strong>LibreLinkUp login</strong>, or your <strong>Dexcom login</strong>. You can also try Orbie with demo data and give us nothing.</li>
-      <li>We keep only what's needed for that. LibreLinkUp and Dexcom passwords are <strong>encrypted</strong>. Every link <strong>deletes itself</strong> 30 days after you last open it, and you can delete yours instantly yourself.</li>
-      <li>We don't keep a history of your readings, don't show ads, don't sell or share your information for marketing, and don't use analytics or tracking cookies.</li>
+      <li><strong>Some Orbie apps keep everything on your own device and send us nothing</strong>: the Android app, the iPhone app, and the watch apps that go with them. The Orbie website, and one mode of the Garmin watch face, use our server instead. Section 1 shows which is which.</li>
+      <li>To show <em>your</em> glucose, Orbie needs a way to read it from the service you use: <strong>Nightscout</strong>, <strong>LibreLinkUp</strong> (FreeStyle Libre) or <strong>Dexcom Share</strong>. Demo mode needs nothing.</li>
+      <li>In the apps, your login is stored on your device in your phone's secure storage and goes only to the service you chose. On the website, we store your login <strong>encrypted</strong> on our server so your link can keep working, and you can delete it at any time.</li>
+      <li>We don't show ads, don't use analytics or tracking, don't sell your information, and don't build a history of your readings on our servers.</li>
       <li>Orbie is <strong>not a medical device</strong> and is not for treatment decisions.</li>
     </ul>
   </div>
 
-  <h2>1. What this policy covers</h2>
-  <p>This policy covers the Orbie website and web app (including the pages where you create your own link and the minigames) and the Orbie watch face for Garmin watches (section 11 explains how the watch face gets its readings). There are no Orbie user accounts.</p>
+  <h2>1. Which Orbie handles your information how</h2>
+  <div class="scroll"><table>
+    <tr><th>Orbie</th><th>Where your login and readings go</th><th>What we receive</th></tr>
+    <tr><td>Website and web app</td><td>Our server stores your Nightscout address, or your LibreLinkUp or Dexcom login (encrypted), and fetches your readings for your link.</td><td>Yes. See section 2.</td></tr>
+    <tr><td>Garmin watch face, Nightscout address mode</td><td>Your watch fetches readings straight from your Nightscout, through your phone.</td><td>Nothing.</td></tr>
+    <tr><td>Garmin watch face, Orbie link mode</td><td>Your watch asks our server for your readings using your link.</td><td>Yes. Your readings pass through our server. See section 3.</td></tr>
+    <tr><td>Android app</td><td>Your login stays on your phone. The app contacts your chosen service directly.</td><td>Nothing. See section 4.</td></tr>
+    <tr><td>Wear OS watch app and watch face</td><td>They show readings the Android app sends over the connection between your phone and watch. They hold no login.</td><td>Nothing. See section 4.</td></tr>
+    <tr><td>iPhone app</td><td>Your login stays in the iPhone Keychain. The app contacts your chosen service directly.</td><td>Nothing. See section 5.</td></tr>
+    <tr><td>Apple Watch app</td><td>The iPhone app copies your login to the watch, directly between your devices. The watch contacts your chosen service itself.</td><td>Nothing. See section 5.</td></tr>
+  </table></div>
+  <p>Not every version is available yet. Where this page describes an app, it describes how the app is built to work once it is published.</p>
 
-  <h2>2. What we handle, and why</h2>
+  <h2>2. The Orbie website and web app</h2>
 
   <h3>If you only use the demo</h3>
   <p>Nothing about you is stored on our servers. Your browser keeps your minigame high scores and your sound on/off choice (see “In your browser” below).</p>
@@ -82,16 +93,16 @@
     <li>Your Nightscout address and, if you give one, your read-only access token.</li>
     <li>A random link ID (this is what the private link contains) and the time it was created.</li>
   </ul>
-  <p><strong>Why:</strong> so that when you open your link, Orbie can fetch your latest readings from <em>your</em> Nightscout site. Orbie only reads; it never writes to your Nightscout.</p>
+  <p><strong>Why:</strong> so that when you open your link, Orbie can fetch your latest readings from <em>your</em> Nightscout site. Orbie only reads from your Nightscout; it does not write to it.</p>
 
   <h3>If you create a link with LibreLinkUp</h3>
   <ul>
-    <li>Your LibreLinkUp <strong>email and password</strong>, stored <strong>encrypted</strong> (see “Security”), along with the Abbott region your account lives in.</li>
-    <li>An internal ID for the person you follow (not their name — names are shown only during sign-up so you can pick the right person, and are not saved).</li>
+    <li>Your LibreLinkUp <strong>email and password</strong>, stored <strong>encrypted</strong> (see section 9), along with the Abbott region your account lives in.</li>
+    <li>An internal ID for the person you follow. Names are shown only during sign-up so you can pick the right person, and are not saved.</li>
     <li>A temporary login token from Abbott, stored encrypted for up to about an hour so we don't sign in on every refresh.</li>
     <li>A random link ID and the creation time.</li>
   </ul>
-  <p><strong>Why:</strong> so Orbie can sign in to LibreLinkUp on your behalf and fetch the readings you've chosen to share with that follower account. We use your login for nothing else. Orbie is not affiliated with Abbott and uses an unofficial connection that Abbott can change or block at any time.</p>
+  <p><strong>Why:</strong> so Orbie can sign in to LibreLinkUp on your behalf and fetch the readings shared with that follower account. We use your login for nothing else. Orbie is not affiliated with Abbott and uses an unofficial connection that Abbott can change or block at any time.</p>
 
   <h3>If you create a link with Dexcom</h3>
   <ul>
@@ -101,87 +112,107 @@
   </ul>
   <p><strong>Why:</strong> so Orbie can sign in to Dexcom Share on your behalf and fetch your latest readings. We use your login for nothing else. Orbie is not affiliated with Dexcom and uses an unofficial connection that Dexcom can change or block at any time.</p>
 
-  <h3>Glucose readings</h3>
-  <p>Readings are fetched live when your page loads or refreshes and sent to your browser. We do <strong>not</strong> build or keep a history of them. Short-lived copies exist only to keep things fast: up to about 45 seconds in our database for LibreLinkUp and Dexcom, and for a few minutes in our hosting provider's cache (up to about 40 minutes for the Nightscout weekly summary). The last few hours of readings your page shows are held in your browser's memory only.</p>
+  <h3>Glucose readings on the website</h3>
+  <p>Readings are fetched live when your page loads or refreshes and sent to your browser. We do not build or keep a history of them. Short-lived copies exist only to keep things fast: up to about 45 seconds in our database for LibreLinkUp and Dexcom, and for a few minutes in our hosting provider's cache (up to about 40 minutes for the Nightscout weekly summary). The last few hours of readings your page shows are held in your browser's memory only.</p>
 
   <h3>Technical information</h3>
   <ul>
-    <li><strong>IP address.</strong> Our hosting provider records ordinary request information (such as IP address, the page or API address requested, and browser type) in its server logs. Because your private link is part of the address, these logs can contain your link ID. We also keep IP addresses in short-lived counters, for up to 24 hours, to limit abuse (for example, to stop someone repeatedly guessing LibreLinkUp passwords).</li>
+    <li><strong>IP address.</strong> Our hosting provider records ordinary request information (such as IP address, the page or API address requested, and browser type) in its server logs. Because your private link is part of the address, these logs can contain your link ID. We also keep IP addresses in short-lived counters, for up to 24 hours, to limit abuse (for example, repeated password guessing).</li>
     <li><strong>A scrambled form of your email or username.</strong> For LibreLinkUp and Dexcom sign-ups we keep a one-way hash of it (not the address or username itself) for up to one hour, for the same abuse limit.</li>
   </ul>
 
   <h3>In your browser</h3>
-  <p>Orbie stores a few small items in your browser's local storage: your best scores in each minigame and whether music is muted. These stay on your device and are not sent to us. Orbie sets <strong>no cookies</strong> and uses <strong>no analytics or advertising trackers</strong>. The pages do load their fonts from Google Fonts, so Google receives your IP address and browser details when a page loads (see Google's privacy policy).</p>
+  <p>The website stores a few small items in your browser's local storage: your best scores in each minigame and whether music is muted. These stay on your device and are not sent to us. The website sets <strong>no cookies</strong> and uses <strong>no analytics or advertising trackers</strong>. Its pages load fonts from Google Fonts, so Google receives your IP address and browser details when a page loads (see Google's privacy policy).</p>
 
-  <h2>3. How we use it</h2>
-  <p>Only to run Orbie: to fetch and show your readings, keep your link working, protect the service and Abbott's service from abuse, fix problems, and answer your messages. We do not sell your information, use it for advertising or profiling, or share it for anyone's marketing.</p>
-
-  <h2>4. Who else is involved</h2>
-  <p>We use a few providers to run Orbie. They handle information only to provide their service to us:</p>
+  <h2>3. The Garmin watch face</h2>
+  <p>The watch face and the Orbie website are separate. The watch face has two ways to get your readings:</p>
   <ul>
-    <li><strong>Vercel</strong> — hosts the website and runs the code. Their logs and cache are described above.</li>
-    <li><strong>Upstash</strong> — the database that stores links (and the encrypted LibreLinkUp login).</li>
-    <li><strong>Abbott (LibreView / LibreLinkUp)</strong> — if you use LibreLinkUp, we sign in to Abbott with your login and read the data they share with that account. Abbott's own terms and privacy notice apply to that.</li>
-    <li><strong>Your Nightscout host</strong> — if you use Nightscout, we request readings from the site you gave us.</li>
-    <li><strong>Google Fonts</strong> — your browser fetches the fonts the pages use.</li>
-    <li><strong>Dexcom</strong> — if you use Dexcom, we sign in to Dexcom Share with your login and read the data it shares. Dexcom's own terms and privacy notice apply to that.</li>
-    <li><strong>Garmin</strong> — if you use the watch face, you enter its settings (such as your Nightscout address or Orbie link) in Garmin's phone app and Garmin syncs them to your watch (see section 11).</li>
+    <li><strong>A Nightscout address (direct).</strong> The watch face sends nothing to us. Using your phone's connection through the Garmin Connect app, it fetches your latest readings straight from the Nightscout address you enter in its settings.</li>
+    <li><strong>An Orbie link.</strong> If you paste an Orbie link into the watch face's settings (needed for FreeStyle Libre and Dexcom), the watch face asks the Orbie server for your readings with that link every few minutes. Your readings then pass through our server, which handles them as described in section 2. Nothing else about you is sent. If you enter both, the Orbie link is used.</li>
   </ul>
-  <p>These providers may process information on servers in the United States and other countries. We may also disclose information if the law requires it.</p>
+  <p>The address, token or link you enter is stored on your watch and synced through Garmin's apps, which are covered by Garmin's own privacy policy. The watch face also keeps the last few hours of readings on the watch to draw its graph, and has no analytics.</p>
 
-  <h2>5. How long we keep it</h2>
+  <h2>4. The Android app and Wear OS</h2>
+  <p>The Android app has no Orbie account, no server of ours and no analytics or ads. It runs on your phone and asks the service you chose for your readings directly: your own Nightscout address, LibreLinkUp, or Dexcom Share. It checks about every 30 seconds while it is open, and about every minute if you turn on the optional status-bar notification.</p>
+  <p><strong>Stored on your phone:</strong></p>
+  <ul>
+    <li>Your login: your Nightscout address and token, your LibreLinkUp email, password, tokens and region, or your Dexcom username, password and region. These are encrypted using a key held in the Android Keystore. The app is set so that its data is not included in Android backups, so a new phone starts without your login.</li>
+    <li>Your latest readings and your settings (data source, units, language, whether the notification and watch sync are on, and similar choices).</li>
+    <li>Game progress, such as scores, stars, streaks and badges.</li>
+  </ul>
+  <p><strong>Optional features:</strong> a status-bar notification showing your latest reading, a home-screen widget drawn from the last reading the app stored, and sync to a Wear OS watch (off by default). When sync is on, the app sends your latest reading (value, trend, change and time) to your paired watch using Google's Wearable Data Layer. The watch app and watch face show it and hold no login.</p>
+  <p><strong>Crash reports</strong> are written on your phone only and shown to you, with a button to copy the text if you choose to send it to us. They include technical details such as the app version, phone model, Android version, screen size, language and your chosen source and unit. They are not sent automatically.</p>
+  <p>The app asks for the Android permissions these features need, such as internet access and, if you turn it on, showing notifications. Google Play and Android have their own data practices, covered by Google's policies.</p>
+
+  <h2>5. The iPhone app and Apple Watch app</h2>
+  <p>The iPhone and Apple Watch apps have no Orbie account, no server of ours, no analytics, no advertising code and no third-party crash reporters. The only network connections they make are to the service you chose: your own Nightscout, LibreLinkUp, or Dexcom Share.</p>
+  <ul>
+    <li><strong>Logins are stored in the iOS Keychain</strong> on your iPhone, available after the first unlock and for that device only. They are not synced through iCloud and are not moved to a new device by a backup restore. Non-secret options, such as language, units and data source, are stored in the app's settings.</li>
+    <li><strong>The Apple Watch app</strong> receives a copy of your login from the iPhone app, directly between your devices, and fetches your readings itself. The watch copy is cleared the next time it connects after the iPhone removes your login, and when the app is reinstalled.</li>
+    <li>The apps refresh when you open them and about every 60 seconds while they are open. Your latest reading is kept on the device.</li>
+    <li>In Settings, <strong>“Remove my saved logins from this phone”</strong> clears the Keychain items and every stored reading.</li>
+  </ul>
+
+  <h2>6. Other services involved</h2>
+  <ul>
+    <li><strong>Your glucose service</strong> — Nightscout (the site you gave us or the app), Abbott (LibreView / LibreLinkUp), or Dexcom. Their own terms and privacy notices apply to the information they hold and share. The LibreLinkUp and Dexcom connections are unofficial and can change or stop working without notice. Orbie is not affiliated with Abbott, Dexcom or the Nightscout project.</li>
+    <li><strong>Vercel</strong> and <strong>Upstash</strong> — for the website only: Vercel hosts it and runs the code, and Upstash is the database that stores links and the encrypted login. Their logs and cache are described above.</li>
+    <li><strong>Google Fonts</strong> — for the website only: your browser fetches the fonts the pages use.</li>
+    <li><strong>Garmin</strong> — for the watch face: settings sync through Garmin's apps.</li>
+    <li><strong>Google</strong> (Google Play, Android, Wear OS) and <strong>Apple</strong> (App Store, iOS, watchOS) — for the apps: they provide the app stores and the connection between your phone and watch.</li>
+  </ul>
+  <p>Providers may process information on servers in the United States and other countries. We may also disclose information if the law requires it.</p>
+
+  <h2>7. How long we keep it</h2>
   <div class="scroll"><table>
     <tr><th>What</th><th>How long</th></tr>
-    <tr><td>Your link, and any saved Nightscout address/token or LibreLinkUp or Dexcom login</td><td>Until 30 days after you last open the link, or until you delete it — whichever comes first</td></tr>
-    <tr><td>Abbott or Dexcom login token/session (encrypted)</td><td>Up to about 1 hour</td></tr>
-    <tr><td>Latest-reading copy in our database</td><td>About 45 seconds</td></tr>
-    <tr><td>“Slow down” markers after a lockout or rejected login</td><td>10–30 minutes</td></tr>
-    <tr><td>Abuse-limit counters (IP address; hashed email)</td><td>Up to 24 hours (hashed email: 1 hour)</td></tr>
+    <tr><td>Website: your link, and any saved Nightscout address/token or LibreLinkUp or Dexcom login</td><td>Until 30 days after you last open the link, or until you delete it, whichever comes first</td></tr>
+    <tr><td>Website: Abbott or Dexcom login token/session (encrypted)</td><td>Up to about 1 hour</td></tr>
+    <tr><td>Website: latest-reading copy in our database</td><td>About 45 seconds</td></tr>
+    <tr><td>Website: “slow down” markers after a lockout or rejected login</td><td>10–30 minutes</td></tr>
+    <tr><td>Website: abuse-limit counters (IP address; hashed email or username)</td><td>Up to 24 hours (hashed email or username: 1 hour)</td></tr>
     <tr><td>Hosting provider logs and cache</td><td>Set by Vercel; short-lived, and not something we control in detail</td></tr>
+    <tr><td>Android, iPhone and Apple Watch apps: logins, readings, settings, game progress</td><td>On your device until you remove them (see section 8) or uninstall the app</td></tr>
+    <tr><td>Garmin watch face: address, token or link; recent readings</td><td>On your watch and in Garmin's apps until you clear them or remove the watch face</td></tr>
     <tr><td>Scores and sound choice in your browser</td><td>Until you clear your browser data</td></tr>
   </table></div>
 
-  <h2>6. Deleting your information</h2>
-  <p>Open your private Orbie link and tap <strong>“delete this Orbie”</strong>. That removes the link and everything stored for it — including a saved LibreLinkUp or Dexcom login — immediately.</p>
-  <p>Orbie has no accounts, so we find your information using your link; we can't look you up by name or email. If you've lost your link, write to Orbitaltheory.co@gmail.com and we'll do what we can, but the surest route is that it deletes itself 30 days after you last open it. If you want to be extra safe with LibreLinkUp, you can also remove Orbie's follower email from the sharing list in the LibreLink app, or change that LibreLinkUp password (for Dexcom, change your Dexcom password).</p>
-
-  <h2>7. Security</h2>
+  <h2>8. Deleting your information</h2>
   <ul>
-    <li>LibreLinkUp and Dexcom passwords and login tokens are encrypted before being stored (AES-256-GCM). The encryption key is kept separately from the database, so a leak of the database alone would not reveal passwords. Each encrypted item is also bound to its own link so it can't be moved to another.</li>
-    <li>Passwords are never written to our logs and never sent back to your browser.</li>
-    <li>Sign-in attempts are rate-limited so the form can't be used to guess passwords.</li>
-    <li>Please be aware: the server necessarily holds the key it needs to sign in as you, so encryption protects against database leaks, not against us or a compromise of the server itself. That's why we recommend a <strong>separate follower email</strong> rather than your main LibreLinkUp login. Dexcom has no separate follower login, so for Dexcom the login is your main account; if that isn't okay with you, use Nightscout instead.</li>
-    <li><strong>Keep your link private.</strong> Anyone who has it can see your glucose. The links are long random values, but they are still only as private as you keep them.</li>
+    <li><strong>Website:</strong> open your private Orbie link and tap <strong>“delete this Orbie”</strong>. That removes the link and everything stored for it, including a saved login, immediately. Orbie has no accounts, so we find your information using your link and can't look you up by name or email. If you've lost your link, write to Orbitaltheory.co@gmail.com and we'll do what we can; otherwise it deletes itself 30 days after you last open it.</li>
+    <li><strong>Garmin watch face:</strong> clear the address, token or link in the watch face's settings, or remove the watch face. If you used an Orbie link, you can also delete that Orbie on the website.</li>
+    <li><strong>Android app:</strong> use the option in the app to remove your saved logins, or uninstall the app.</li>
+    <li><strong>iPhone and Apple Watch:</strong> in Settings, tap “Remove my saved logins from this phone”, or delete the app.</li>
+    <li>To be extra careful with LibreLinkUp, you can also remove Orbie's follower email from the sharing list in the LibreLink app, or change that password. For Dexcom, change your Dexcom password.</li>
+  </ul>
+
+  <h2>9. Security</h2>
+  <ul>
+    <li><strong>Website:</strong> LibreLinkUp and Dexcom passwords and login tokens are encrypted before being stored (AES-256-GCM). The encryption key is kept separately from the database, so a leak of the database alone would not reveal passwords. Each encrypted item is also bound to its own link so it can't be moved to another. Passwords are not written to our logs and are not sent back to your browser. Sign-in attempts are rate-limited so the form can't be used to guess passwords.</li>
+    <li>The website server necessarily holds the key it needs to sign in as you, so its encryption protects against database leaks, not against us or a compromise of the server itself. That's why we recommend a <strong>separate follower email</strong> for LibreLinkUp rather than your main login. Dexcom has no separate follower login, so for Dexcom the login is your main account; if that isn't okay with you, use Nightscout instead.</li>
+    <li><strong>Apps:</strong> logins are kept in your phone's secure storage (the Android Keystore or the iOS Keychain) and are sent only over secure connections to the service you chose.</li>
+    <li><strong>Keep your link private.</strong> Anyone who has your website link can see your glucose. The links are long random values, but they are only as private as you keep them.</li>
   </ul>
   <p>No system is perfectly secure, and we can't promise absolute security.</p>
 
-  <h2>8. Your choices and rights</h2>
-  <p>Giving us any of this is optional — you can use the demo with nothing. You can delete your link whenever you like. Depending on where you live (for example the EEA, the UK, or California), you may also have rights to ask what we hold about you, to have it corrected or deleted, to object to or restrict how it's used, or to receive a copy. Write to Orbitaltheory.co@gmail.com and include your link so we can find your information; we'll respond within the time the law requires. You can also complain to your local data protection authority.</p>
-  <p>Where the law asks for a legal basis: we handle your information to provide the service you asked for, and, for LibreLinkUp and Dexcom, with your consent when you tick the box before signing in. You can withdraw that consent at any time by deleting your link.</p>
+  <h2>10. Your choices and rights</h2>
+  <p>Giving us any of this is optional; you can use the demo with nothing. Depending on where you live (for example the EEA, the UK, or California), you may have rights to ask what we hold about you, to have it corrected or deleted, to object to or restrict how it is used, or to receive a copy. For the website, write to Orbitaltheory.co@gmail.com and include your link so we can find your information; we'll respond within the time the law requires. For the apps, we hold nothing about you, so there is nothing for us to look up; you control what is on your device. You can also complain to your local data protection authority.</p>
+  <p>Where the law asks for a legal basis: we handle your information to provide the service you asked for. When you save a login on the website, you confirm that you understand how it is stored by ticking the box before continuing, and you can withdraw that at any time by deleting your link.</p>
 
-  <h2>9. Health information</h2>
-  <p>Glucose readings are health information. We handle them only to show them to you, as described above, and never for advertising, profiling, or sale.</p>
+  <h2>11. Health information</h2>
+  <p>Glucose readings are health information. Orbie handles them only to show them to you, as described above, and not for advertising, profiling or sale.</p>
 
-  <h2>10. Children</h2>
-  <p>Orbie is not directed at children and we don't knowingly collect information from them directly. If you're a parent or guardian following a child's readings, you are the one signing in; please only do so for someone you're responsible for.</p>
+  <h2>12. Children</h2>
+  <p>Orbie is not directed at children under 13, or under the minimum age that applies where you live, and we do not knowingly collect information from them.</p>
 
-  <h2>11. The Garmin watch face</h2>
-  <p>The watch face and the Orbie website are <strong>separate</strong>. The watch face has two ways to get your readings:</p>
-  <ul>
-    <li><strong>A Nightscout address (direct).</strong> The watch face sends <strong>nothing to us</strong>. Using your phone's connection through the Garmin Connect app, it fetches your latest readings straight from the Nightscout address you enter in its settings.</li>
-    <li><strong>An Orbie link.</strong> If you paste an Orbie link into the watch face's settings (needed for FreeStyle Libre and Dexcom), the watch face asks the Orbie server for your readings with that link every few minutes. Your readings then pass through our server, which handles them as described in section 2. Nothing else about you is sent. If you enter both, the Orbie link is used.</li>
-  </ul>
-  <p>The address, token or link you enter is stored on your watch and synced through Garmin's apps, which are covered by Garmin's own privacy policy. The watch face also keeps the last few hours of readings on the watch itself to draw its graph, and has no analytics.</p>
+  <h2>13. Not medical advice</h2>
+  <p>Orbie is a companion, not a monitor. It can be wrong, delayed, or stop working, including if Abbott or Dexcom changes how its connection works. Don't use it to make treatment decisions, and keep using your usual CGM app, alarms, and care team.</p>
 
-  <h2>12. Not medical advice</h2>
-  <p>Orbie is a companion, not a monitor. It can be wrong, delayed, or stop working (including if Abbott changes how LibreLinkUp works). Don't use it to make treatment decisions, and keep using your usual CGM app, alarms, and care team.</p>
+  <h2>14. Changes to this policy</h2>
+  <p>If we change how any version of Orbie handles information, we'll update this page and the date at the top, and for significant changes we'll say so where you set Orbie up.</p>
 
-  <h2>13. Changes to this policy</h2>
-  <p>If we change how Orbie handles information, we'll update this page and the date at the top, and for significant changes we'll say so on the page where you create your link.</p>
-
-  <h2>14. Contact</h2>
-  Orbitaltheory.co
-  Email: Orbitaltheory.co@gmail.com
+  <h2>15. Contact</h2>
+  <p>Orbitaltheory.co<br>Email: Orbitaltheory.co@gmail.com</p>
 </main>
 </body>
 </html>

@@ -11,6 +11,10 @@
     {
       "source": "/privacy",
       "destination": "/privacy.html"
+    },
+    {
+      "source": "/apps",
+      "destination": "/apps.html"
     }
   ],
   "headers": [
